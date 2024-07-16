@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App List Backup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      margin: 0;
+      padding: 16px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .controls-container {
+      margin-bottom: 16px;
+    }
+
+    .backup-time {
+      text-align: center;
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .controls {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .controls input {
+      flex-grow: 1;
+      padding: 8px 24px 8px 8px;
+      position: relative;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .clear-button {
+      display: none;
+      position: absolute;
+      justify-content: center;
+      align-items: center;
+      right: 0;
+      top: 0;
+      height: 100%;
+      cursor: pointer;
+      aspect-ratio: 1 / 1;
+    }
+
+    .controls button {
+      padding: 8px;
+      flex: 1;
+      border-radius: 8px;
+      border: none;
+      background-color: #ccc;
+
+      &:hover {
+        background-color: #aaa;
+      }
+
+      &:active {
+        background-color: #888;
+      }
+    }
+
+    .app-list {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .app-name {
+      font-size: 16px;
+    }
+
+    .app-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 8px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      margin-bottom: 8px;
+      border-radius: 8px;
+    }
+
+    .app-item img {
+      width: 48px;
+      height: 48px;
+      margin-right: 8px;
+    }
+
+    .app-details {
+      flex: 1;
+      min-width: 0;
+      line-break: break-all;
+      word-wrap: break-word;
+    }
+
+    .placeholder {
+      text-align: center;
+      padding: 16px;
+      font-size: 18px;
+      color: #666;
+    }
+
+    .filter-modal,
+    .sort-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #fff;
+      padding: 16px;
+      border-radius: 5px;
+      width: 80%;
+      max-width: 400px;
+    }
+
+    .modal-content h3 {
+      margin-top: 0;
+    }
+
+    .modal-content label {
+      display: block;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="controls-container">
+    <div class="controls">
+      <input type="text" id="search-input" placeholder="Search by app name or package name...">
+      <span class="clear-button" onclick="clearSearch()">✖</span>
+    </div>
+    <div class="controls">
+      <button onclick="toggleSortModal()">Sort Options</button>
+      <button onclick="toggleFilterModal()">Filter Options</button>
+    </div>
+  </div>
+  <div class="app-list" id="app-list">
+    <!-- APP_ITEMS_PLACEHOLDER -->
+  </div>
+  <div id="no-items-placeholder" class="placeholder" style="display:none;">
+    No apps match the current filters.
+  </div>
+  <div class="backup-time">
+    Backup created on: <span id="backup-time">
+      <!-- BACKUP_TIME_PLACEHOLDER -->
+    </span>
+  </div>
+
+  <!-- Sort Modal -->
+  <div class="sort-modal" id="sort-modal">
+    <div class="modal-content">
+      <h3>Sorting</h3>
+      <label>
+        <input type="radio" name="sort" value="default" onclick="sortBy('default')" checked> By default
+      </label>
+      <label>
+        <input type="radio" name="sort" value="installTime" onclick="sortBy('installTime')"> By install time
+      </label>
+      <label>
+        <input type="radio" name="sort" value="updateTime" onclick="sortBy('updateTime')"> By update time
+      </label>
+      <label>
+        <input type="radio" name="sort" value="appName" onclick="sortBy('appName')"> By app name
+      </label>
+      <label>
+        <input type="radio" name="sort" value="packageName" onclick="sortBy('packageName')"> By package name
+      </label>
+      <div>
+        <h3>Order</h3>
+        <label>
+          <input type="radio" name="sortOrder" value="asc" onclick="setSortOrder('asc')" checked> Ascending
+        </label>
+        <label>
+          <input type="radio" name="sortOrder" value="desc" onclick="setSortOrder('desc')"> Descending
+        </label>
+      </div>
+      <button onclick="toggleSortModal()">Close</button>
+    </div>
+  </div>
+
+  <!-- Filter Modal -->
+  <div class="filter-modal" id="filter-modal">
+    <div class="modal-content">
+      <h3>Apps Filtering</h3>
+      <label>
+        <input type="checkbox" id="filter-user-apps" checked> Include user apps
+      </label>
+      <label>
+        <input type="checkbox" id="filter-system-apps" checked> Include system apps
+      </label>
+      <label>
+        <input type="checkbox" id="filter-enabled-apps" checked> Include enabled apps
+      </label>
+      <label>
+        <input type="checkbox" id="filter-disabled-apps" checked> Include disabled apps
+      </label>
+      <button onclick="applyFilters()">Apply Filters</button>
+      <button onclick="toggleFilterModal()">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const appList = document.getElementById('app-list');
+    const noItemsPlaceholder = document.getElementById('no-items-placeholder');
+    const appItems = [...appList.getElementsByClassName('app-item')];
+    let currentSortOrder = 'asc';
+    let currentSortCriteria = 'default';
+
+    function sortBy(criteria) {
+      currentSortCriteria = criteria;
+      let compareFunction;
+
+      switch (criteria) {
+        case 'default':
+          compareFunction = (a, b) => a.dataset.defaultOrder - b.dataset.defaultOrder;
+          break;
+        case 'installTime':
+          compareFunction = (a, b) => new Date(Number(a.dataset.installTime)) - new Date(Number(b.dataset.installTime));
+          break;
+        case 'updateTime':
+          compareFunction = (a, b) => new Date(Number(a.dataset.updateTime)) - new Date(Number(b.dataset.updateTime));
+          break;
+        case 'appName':
+          compareFunction = (a, b) => a.dataset.appName.localeCompare(b.dataset.appName);
+          break;
+        case 'packageName':
+          compareFunction = (a, b) => a.dataset.packageName.localeCompare(b.dataset.packageName);
+          break;
+      }
+
+      if (currentSortOrder === 'desc') {
+        appItems.sort((a, b) => compareFunction(b, a));
+      } else {
+        appItems.sort(compareFunction);
+      }
+
+      updateAppList();
+    }
+
+    function setSortOrder(order) {
+      currentSortOrder = order;
+      sortBy(currentSortCriteria);
+    }
+
+    function filterList() {
+      const filterValue = document.getElementById('search-input').value.toLowerCase();
+      let visibleItemCount = 0;
+      appItems.forEach(item => {
+        const appName = item.dataset.appName.toLowerCase();
+        const packageName = item.dataset.packageName.toLowerCase();
+        if (appName.includes(filterValue) || packageName.includes(filterValue)) {
+          item.style.display = '';
+          visibleItemCount++;
+        } else {
+          item.style.display = 'none';
+        }
+      });
+      togglePlaceholder(visibleItemCount);
+    }
+
+    document.getElementById('search-input').addEventListener('input', function () {
+      filterList();
+      const clearButton = document.querySelector('.clear-button');
+      clearButton.style.display = this.value ? 'flex' : 'none';
+    });
+
+    function applyFilters() {
+      const includeUserApps = document.getElementById('filter-user-apps').checked;
+      const includeSystemApps = document.getElementById('filter-system-apps').checked;
+      const includeEnabledApps = document.getElementById('filter-enabled-apps').checked;
+      const includeDisabledApps = document.getElementById('filter-disabled-apps').checked;
+
+      let visibleItemCount = 0;
+      appItems.forEach(item => {
+        const isUserApp = item.dataset.isSystemApp === 'false';
+        const isSystemApp = item.dataset.isSystemApp === 'true';
+        const isEnabled = item.dataset.isEnabled === 'true';
+        const isDisabled = item.dataset.isEnabled === 'false';
+
+        const showUserApp = includeUserApps && isUserApp;
+        const showSystemApp = includeSystemApps && isSystemApp;
+        const showEnabledApp = includeEnabledApps && isEnabled;
+        const showDisabledApp = includeDisabledApps && isDisabled;
+
+        if ((showUserApp || showSystemApp) && (showEnabledApp || showDisabledApp)) {
+          item.style.display = '';
+          visibleItemCount++;
+        } else {
+          item.style.display = 'none';
+        }
+      });
+      togglePlaceholder(visibleItemCount);
+      toggleFilterModal();
+    }
+
+    function toggleSortModal() {
+      const sortModal = document.getElementById('sort-modal');
+      sortModal.style.display = sortModal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function toggleFilterModal() {
+      const filterModal = document.getElementById('filter-modal');
+      filterModal.style.display = filterModal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function togglePlaceholder(visibleItemCount) {
+      if (visibleItemCount === 0) {
+        noItemsPlaceholder.style.display = 'block';
+      } else {
+        noItemsPlaceholder.style.display = 'none';
+      }
+    }
+
+    function updateAppList() {
+      appList.innerHTML = '';
+      appItems.forEach(item => appList.appendChild(item));
+      togglePlaceholder(appItems.length);
+    }
+
+    function clearSearch() {
+      const searchInput = document.getElementById('search-input');
+      searchInput.value = '';
+      searchInput.dispatchEvent(new Event('input'));
+    }
+  </script>
+</body>
+
+</html>

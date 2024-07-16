@@ -1,0 +1,41 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_layout"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:theme="@style/Theme.AppListBackup.AppWidgetContainer">
+
+    <FrameLayout
+        style="@style/Widget.AppListBackup.AppWidget.Container"
+        android:id="@+id/image_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ImageView
+            android:id="@+id/logo"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/appwidget_text"
+            android:src="@mipmap/ic_launcher"
+            android:visibility="visible"
+            />
+
+        <ProgressBar
+            android:id="@+id/loading_spinner"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:indeterminate="true"/>
+    </FrameLayout>
+
+    <TextView
+        style="@style/Widget.AppListBackup.AppWidget.InnerView"
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/appwidget_text"
+        android:layout_marginVertical="8dp"
+        android:gravity="center"/>
+</LinearLayout>
