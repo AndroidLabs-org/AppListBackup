@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">AppListBackup</string>
+    <string name="appwidget_text">Backup now</string>
+    <string name="appwidget_text_in_progress">Backing up</string>
+    <string name="app_widget_description">This widget allow you to create backup immediately.</string>
+    <string name="shortcut_backup_label">Run Backup</string>
+    <string name="shortcut_backup_long_label">Run App List Backup</string>
+    <string name="backup_location">Where is my backup located?</string>
+    <string name="tasker_integration">How does Tasker integration work?</string>
+    <string name="tasker_timeout">What is the timeout for Tasker?</string>
+    <string name="backups_after_uninstalling">What happens to my backups after I uninstall the app?</string>
+    <string name="automate_integration">How does Automate integration work?</string>
+    <string name="macrodroid_integration">How does MacroDroid integration work?</string>
+</resources>

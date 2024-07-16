@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="id_backup"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_backup_label"
+        android:shortcutLongLabel="@string/shortcut_backup_long_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="org.androidlabs.applistbackup.MainActivity"
+            android:targetPackage="org.androidlabs.applistbackup">
+            <extra android:name="RUN_BACKUP" android:value="true" />
+        </intent>
+    </shortcut>
+</shortcuts>
