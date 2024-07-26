@@ -1,1 +1,1 @@
-Effortlessly create and manage backups of your installed apps on Android.
+Effortlessly create and manage backups of a list of your installed apps on Android.
