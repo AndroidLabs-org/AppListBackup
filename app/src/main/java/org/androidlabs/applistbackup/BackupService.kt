@@ -9,6 +9,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
@@ -200,16 +201,19 @@ class BackupService : Service() {
                 val appItems = StringBuilder()
 
                 var systemAppsCount = 0
-                val apps = packageManager.queryIntentActivities(mainIntent, 0)
+                val apps = packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
+                val activeApps = packageManager.queryIntentActivities(mainIntent, 0).map { it.activityInfo.packageName }
 
-                apps.forEachIndexed { index, resolveInfo ->
-                    val appInfo = resolveInfo.activityInfo.applicationInfo
-                    val name = packageManager.getApplicationLabel(appInfo)
-                    val packageName = appInfo.packageName
-                    val packageInfo = packageManager.getPackageInfo(packageName, 0)
-                    val icon = packageManager.getApplicationIcon(appInfo)
+                apps.forEachIndexed { index, packageInfo ->
+                    val appInfo = packageInfo.applicationInfo
                     val isSystem = appInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0 ||
                             appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
+                    if (isSystem && !activeApps.contains(packageInfo.packageName)) {
+                        return@forEachIndexed
+                    }
+                    val name = packageManager.getApplicationLabel(appInfo)
+                    val packageName = appInfo.packageName
+                    val icon = packageManager.getApplicationIcon(appInfo)
                     if (isSystem) {
                         systemAppsCount++
                     }
