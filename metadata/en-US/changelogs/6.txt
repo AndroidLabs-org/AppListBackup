@@ -1,0 +1,1 @@
+Fix case when disabled apps could be missed in the backup.
