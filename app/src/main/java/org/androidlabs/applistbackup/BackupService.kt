@@ -181,7 +181,7 @@ class BackupService : Service() {
             val notification = NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
                 .setContentTitle("Backup started")
                 .setContentText("In progress...")
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .build()
 
             startForeground(1, notification)
@@ -275,7 +275,7 @@ class BackupService : Service() {
                 val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
                     .setContentTitle(successfulTitle)
                     .setContentText(successfulText)
-                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentIntent(pendingIntent)
                     .build()
 
@@ -290,7 +290,7 @@ class BackupService : Service() {
                 val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
                     .setContentTitle("Backup failed")
                     .setContentText(error.localizedMessage)
-                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .build()
 
                 val manager = getSystemService(NotificationManager::class.java)
@@ -308,7 +308,7 @@ class BackupService : Service() {
             val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
                 .setContentTitle("Backup failed")
                 .setContentText("You need to setup destination folder at first.")
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .build()
 
             val manager = getSystemService(NotificationManager::class.java)
