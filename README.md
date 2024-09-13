@@ -2,15 +2,13 @@
 
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" height="75">](https://f-droid.org/packages/org.androidlabs.applistbackup/)
 
-With AppListBackup, you can have peace of mind knowing your favorite apps and their data are safely backed up. Download now and ensure your apps are always ready for restoration!
-
 AppListBackup is the ultimate solution for generating a backup list of installed applications on your Android device.
 
 This user-friendly app allows you to automatically create and view a backup list of all your installed apps with just a few taps.
 
 Whether you want to safeguard your list of favorite apps or prepare for a device reset, AppListBackup ensures your apps list is securely backed up and ready to be viewed whenever you need it.
 
-## Key Features
+## Key Features:
 
 * Quickly create backup lists of installed apps with ease, including details such as: installation date, version number, package name, app icon and more.
 * View your backup lists from any device with an easy to use HTML file including the ability to sort and filter.
