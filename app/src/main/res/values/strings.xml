@@ -11,4 +11,5 @@
     <string name="backups_after_uninstalling">What happens to my backups after I uninstall the app?</string>
     <string name="automate_integration">How does Automate integration work?</string>
     <string name="macrodroid_integration">How does MacroDroid integration work?</string>
+    <string name="intent_integration">How does Intent integration work?</string>
 </resources>

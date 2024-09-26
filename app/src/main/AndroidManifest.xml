@@ -21,8 +21,7 @@
             android:name=".BackupReceiver"
             android:enabled="true"
             android:exported="true"
-            android:foregroundServiceType="shortService"
-            android:permission="android.permission.BIND_JOB_SERVICE">
+            tools:ignore="ExportedReceiver">
             <intent-filter>
                 <action android:name="org.androidlabs.applistbackup.BACKUP_ACTION" />
             </intent-filter>

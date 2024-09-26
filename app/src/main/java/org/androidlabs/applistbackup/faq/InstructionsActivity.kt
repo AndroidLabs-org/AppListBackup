@@ -3,10 +3,9 @@ package org.androidlabs.applistbackup.faq
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,14 +20,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.R
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
-
-data class Instruction(val title: String, val description: String, val details: String? = null)
 
 class InstructionsActivity : ComponentActivity() {
 
@@ -144,51 +139,22 @@ fun BackupInstructionsScreen(backupPath: String, appName: String, modifier: Modi
                 9. Save the flow by pressing the save icon. You can now run this flow to automate backups.
             """.trimIndent()
         ),
-        Instruction(
-            title = stringResource(id = R.string.macrodroid_integration),
-            description = """
-                1. Open the MacroDroid app on your device.
-                2. Tap on the "+" button to create a new macro.
-                3. Configure the triggers that will initiate your macro.
-                4. Press the "+" icon in the Actions section to add a new action.
-                5. Choose the 'Applications' category and select 'Tasker/Locale Plugin'.
-                6. In the dialog, choose '$appName' and select the appropriate event that appears below it. Press 'OK' to confirm in the next dialog.
-                7. Configure any additional parameters required for your macro.
-                8. Save the macro by pressing the save icon. You can now run this macro to automate backups.
-            """.trimIndent()
-        )
     )
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         instructions.forEach { instruction ->
-            Text(
-                text = instruction.title,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold
+            InstructionRow(
+                instruction = instruction,
+                isDescriptionBold = instruction.title == stringResource(id = R.string.backup_location) && backupPath != ""
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = instruction.description,
-                fontWeight = if (instruction.title == stringResource(id = R.string.backup_location) && backupPath != "") FontWeight.Bold else FontWeight.Normal
-            )
-
-            if (instruction.details != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = instruction.details,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
+
+        InstructionsIntent(appName)
     }
 }
