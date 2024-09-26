@@ -7,7 +7,6 @@
     </style>
 
     <style name="Widget.AppListBackup.AppWidget.InnerView" parent="android:Widget">
-        <item name="android:padding">?attr/appWidgetPadding</item>
         <item name="android:textColor">@color/white</item>
     </style>
 </resources>
