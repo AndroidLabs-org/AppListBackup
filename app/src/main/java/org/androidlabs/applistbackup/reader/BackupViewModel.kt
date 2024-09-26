@@ -2,6 +2,7 @@ package org.androidlabs.applistbackup.reader
 
 import android.app.Application
 import android.net.Uri
+import android.os.Build
 import android.os.FileObserver
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
@@ -38,14 +39,24 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
 
         fileObserver?.stopWatching()
 
-        val backupFolder = File(backupFolderPath)
-
-        fileObserver?.stopWatching()
-
-        fileObserver = object : FileObserver(backupFolder, CREATE or DELETE or MODIFY) {
-            override fun onEvent(event: Int, path: String?) {
-                if (path != null) {
-                    updateBackupFiles()
+        fileObserver = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val backupFolder = File(backupFolderPath)
+            object : FileObserver(backupFolder, CREATE or DELETE or MODIFY) {
+                override fun onEvent(event: Int, path: String?) {
+                    if (path != null) {
+                        updateBackupFiles()
+                    }
+                }
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            object : FileObserver(backupFolderPath) {
+                override fun onEvent(event: Int, path: String?) {
+                    if (event == CREATE || event == DELETE || event == MODIFY) {
+                        if (path != null) {
+                            updateBackupFiles()
+                        }
+                    }
                 }
             }
         }

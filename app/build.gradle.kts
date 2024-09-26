@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "org.androidlabs.applistbackup"
-        minSdk = 33
+        minSdk = 28
         targetSdk = 34
         versionCode = 8
         versionName = "1.0.3"

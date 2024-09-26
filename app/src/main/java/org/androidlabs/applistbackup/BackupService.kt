@@ -15,6 +15,8 @@ import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import android.os.IBinder
 import android.provider.DocumentsContract
 import android.util.Base64
@@ -77,8 +79,19 @@ class BackupService : Service() {
             val decodedPath = URLDecoder.decode(path, StandardCharsets.UTF_8.toString())
 
             return when (type) {
-                "primary" -> "Internal Storage/$decodedPath"
-                "home" -> "Home/$decodedPath"
+                "primary" -> "Internal Storage$decodedPath"
+                "home" -> "Home$decodedPath"
+                "raw" -> {
+                    val internalPath = Environment.getExternalStorageDirectory().path
+                    when {
+                        decodedPath.startsWith(internalPath) -> {
+                            "Internal Storage${decodedPath.removePrefix(internalPath)}"
+                        }
+                        else -> {
+                            decodedPath
+                        }
+                    }
+                }
                 else -> "$type/$decodedPath"
             }
         }
