@@ -15,7 +15,6 @@ import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import android.provider.DocumentsContract
@@ -65,7 +64,7 @@ class BackupService : Service() {
 
         fun getBackupFolder(context: Context): DocumentFile? {
             val backupsUri = getBackupUri(context) ?: return null
-            return DocumentFile.fromTreeUri(context, backupsUri);
+            return DocumentFile.fromTreeUri(context, backupsUri)
         }
 
         fun getReadablePathFromUri(uri: Uri?): String {
@@ -79,20 +78,20 @@ class BackupService : Service() {
             val decodedPath = URLDecoder.decode(path, StandardCharsets.UTF_8.toString())
 
             return when (type) {
-                "primary" -> "Internal Storage$decodedPath"
-                "home" -> "Home$decodedPath"
+                "primary" -> "Internal Storage/${clearPrefixSlash(decodedPath)}"
+                "home" -> "Home/${clearPrefixSlash(decodedPath)}"
                 "raw" -> {
                     val internalPath = Environment.getExternalStorageDirectory().path
                     when {
                         decodedPath.startsWith(internalPath) -> {
-                            "Internal Storage${decodedPath.removePrefix(internalPath)}"
+                            "Internal Storage/${clearPrefixSlash(decodedPath.removePrefix(internalPath))}"
                         }
                         else -> {
                             decodedPath
                         }
                     }
                 }
-                else -> "$type/$decodedPath"
+                else -> "$type/${clearPrefixSlash(decodedPath)}"
             }
         }
 
@@ -165,6 +164,14 @@ class BackupService : Service() {
             val broadcastIntent = Intent("org.androidlabs.applistbackup.BACKUP_ACTION")
             context.sendBroadcast(broadcastIntent)
         }
+
+        private fun clearPrefixSlash(path: String): String {
+            val prefix = "/"
+            if (path.startsWith(prefix)) {
+                return path.removePrefix(prefix)
+            }
+            return path
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -173,12 +180,7 @@ class BackupService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(tag, "start: ${intent.toString()}")
-        val source: String?
-        if (intent != null) {
-            source = intent.getStringExtra("source")
-        } else {
-            source = null
-        }
+        val source = intent?.getStringExtra("source")
         createNotificationChannels()
 
         val backupsDir = getBackupFolder(this)
@@ -299,10 +301,10 @@ class BackupService : Service() {
                     onCompleteCallback?.let { it(newFile.uri) }
                     onCompleteCallback = null
                 }
-            } catch (error: Error) {
+            } catch (exception: Exception) {
                 val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
                     .setContentTitle("Backup failed")
-                    .setContentText(error.localizedMessage)
+                    .setContentText(exception.localizedMessage)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .build()
 
