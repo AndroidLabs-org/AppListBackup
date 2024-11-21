@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -45,18 +44,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import org.androidlabs.applistbackup.docs.DocsViewerActivity
-import org.androidlabs.applistbackup.faq.InstructionsActivity
-import org.androidlabs.applistbackup.reader.BackupReaderActivity
-import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.androidlabs.applistbackup.docs.DocsViewerActivity
+import org.androidlabs.applistbackup.faq.InstructionsActivity
+import org.androidlabs.applistbackup.reader.BackupReaderActivity
 import org.androidlabs.applistbackup.ui.LoadingView
-import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
+import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainActivityViewModel by viewModels()

@@ -12,4 +12,11 @@
     <string name="automate_integration">How does Automate integration work?</string>
     <string name="macrodroid_integration">How does MacroDroid integration work?</string>
     <string name="loading">Loading…</string>
+    <string name="error_message">Error: %1$s</string>
+    <string name="wrong_file">"Please select a backup file created by this application</string>
+    <string name="backup">Backup</string>
+    <string name="back">Back</string>
+    <string name="browse">Browse</string>
+    <string name="no_backup_found">"No backup found</string>
+    <string name="run_backup">Run backup</string>
 </resources>
