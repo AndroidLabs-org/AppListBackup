@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -49,6 +50,13 @@ import org.androidlabs.applistbackup.faq.InstructionsActivity
 import org.androidlabs.applistbackup.reader.BackupReaderActivity
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.androidlabs.applistbackup.ui.LoadingView
+import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainActivityViewModel by viewModels()
@@ -103,12 +111,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openLastBackup() {
-        val lastBackupUri = BackupService.getLastCreatedFileUri(this)
-        val intent = Intent(this, BackupReaderActivity::class.java)
-        if (lastBackupUri != null) {
-            intent.putExtra("uri", lastBackupUri.toString())
+        lifecycleScope.launch {
+            viewModel.setLoading(true)
+            val lastBackupUri = withContext(Dispatchers.IO) {
+                BackupService.getLastCreatedFileUri(this@MainActivity)
+            }
+
+            val intent = withContext(Dispatchers.Default) {
+                Intent(this@MainActivity, BackupReaderActivity::class.java).apply {
+                    if (lastBackupUri != null) {
+                        putExtra("uri", lastBackupUri.toString())
+                    }
+                }
+            }
+            startActivity(intent)
+            viewModel.setLoading(false)
         }
-        startActivity(intent)
     }
 
     private fun runBackup() {
@@ -148,6 +166,7 @@ fun ActivityState(
 ) {
     val isNotificationEnabled = viewModel.notificationEnabled.observeAsState(initial = false)
     val backupUri = viewModel.backupUri.observeAsState()
+    val isLoading = viewModel.isLoading.observeAsState(initial = false)
 
     LaunchedEffect(key1 = true) {
         viewModel.refreshNotificationStatus()
@@ -249,8 +268,12 @@ fun ActivityState(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(onClick = openLastBackup) {
-                    Text(text = "View backup")
+                Button(onClick = openLastBackup, enabled = !isLoading.value) {
+                    if (isLoading.value) {
+                        LoadingView()
+                    } else {
+                        Text(text = "View backup")
+                    }
                 }
             } else {
                 Text(

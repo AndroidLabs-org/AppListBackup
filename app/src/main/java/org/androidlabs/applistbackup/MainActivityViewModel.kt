@@ -16,12 +16,10 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
 
     val notificationEnabled: MutableLiveData<Boolean> = MutableLiveData(checkNotificationEnabled())
     private val _backupUri: MutableLiveData<Uri?> = MutableLiveData(loadBackupUri())
+    private val _isLoading: MutableLiveData<Boolean> = MutableLiveData(false)
 
     val backupUri: LiveData<Uri?> get() = _backupUri
-
-    init {
-        // Initialize and maybe set up a periodic check or check on specific app events
-    }
+    val isLoading: LiveData<Boolean> get() = _isLoading
 
     private fun checkNotificationEnabled(): Boolean {
         return notificationManagerCompat.areNotificationsEnabled()
@@ -43,6 +41,12 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch(Dispatchers.IO) {
             BackupService.setBackupUri(getApplication(), uri)
             _backupUri.postValue(uri)
+        }
+    }
+
+    fun setLoading(value: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoading.postValue(value)
         }
     }
 }
