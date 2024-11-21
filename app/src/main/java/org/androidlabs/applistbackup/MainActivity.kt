@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,11 +34,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -48,6 +48,7 @@ import org.androidlabs.applistbackup.docs.DocsViewerActivity
 import org.androidlabs.applistbackup.faq.InstructionsActivity
 import org.androidlabs.applistbackup.reader.BackupReaderActivity
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainActivityViewModel by viewModels()
@@ -65,10 +66,9 @@ class MainActivity : ComponentActivity() {
         setFolderLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 result.data?.data?.let { uri ->
-                    val takeFlags = result.data?.flags?.and(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    if (takeFlags != null) {
-                        contentResolver.takePersistableUriPermission(uri, takeFlags)
-                    }
+                    val takeFlags = (result.data?.flags ?: 0) and
+                            (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    contentResolver.takePersistableUriPermission(uri, takeFlags)
 
                     viewModel.saveBackupUri(uri)
                 }
@@ -174,6 +174,32 @@ fun ActivityState(
         }
     }
 
+    val termsString = buildAnnotatedString {
+        withLink(
+            link = LinkAnnotation.Clickable(
+                tag = "TAG",
+                linkInteractionListener = {
+                    openDoc("Terms and Conditions", "terms")
+                },
+            ),
+        ) {
+            append("Terms and Conditions")
+        }
+    }
+
+    val privacyString = buildAnnotatedString {
+        withLink(
+            link = LinkAnnotation.Clickable(
+                tag = "TAG",
+                linkInteractionListener = {
+                    openDoc("Privacy Policy", "privacy")
+                },
+            ),
+        ) {
+            append("Privacy Policy")
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -264,22 +290,16 @@ fun ActivityState(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ClickableText(
-                text = AnnotatedString("Terms and Conditions"),
+            Text(
+                text = termsString,
                 style = TextStyle(fontSize = 12.sp, color = MaterialTheme.colorScheme.primary),
-                onClick = {
-                    openDoc("Terms and Conditions", "terms")
-                }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ClickableText(
-                text = AnnotatedString("Privacy Policy"),
+            Text(
+                text = privacyString,
                 style = TextStyle(fontSize = 12.sp, color = MaterialTheme.colorScheme.primary),
-                onClick = {
-                    openDoc("Privacy Policy", "privacy")
-                }
             )
         }
     }
