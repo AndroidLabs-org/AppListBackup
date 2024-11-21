@@ -220,7 +220,7 @@ class BackupService : Service() {
                 val activeApps = packageManager.queryIntentActivities(mainIntent, 0).map { it.activityInfo.packageName }
 
                 apps.forEachIndexed { index, packageInfo ->
-                    val appInfo = packageInfo.applicationInfo
+                    val appInfo = packageInfo.applicationInfo ?: return@forEachIndexed
                     val isSystem = appInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0 ||
                             appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
                     if (isSystem && !activeApps.contains(packageInfo.packageName)) {
