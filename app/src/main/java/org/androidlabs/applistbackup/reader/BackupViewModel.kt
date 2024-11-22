@@ -1,6 +1,7 @@
 package org.androidlabs.applistbackup.reader
 
 import android.app.Application
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.FileObserver
@@ -19,10 +20,17 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     private val _backupFiles = MutableLiveData<List<BackupFile>>(emptyList())
     val backupFiles: LiveData<List<BackupFile>> = _backupFiles
 
+    private val _installedPackages = MutableLiveData<List<String>>(emptyList())
+    val installedPackages: LiveData<List<String>> = _installedPackages;
+
     private var fileObserver: FileObserver? = null
 
     init {
         initializeFileObserver()
+        val packageManager = application.packageManager
+        val installedPackages = packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
+        val packageNames = installedPackages.map { it.packageName }
+        _installedPackages.value = packageNames
     }
 
     fun setUri(newUri: Uri) {

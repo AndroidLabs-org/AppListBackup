@@ -214,6 +214,9 @@
       <label>
         <input type="checkbox" id="filter-disabled-apps" checked> Include disabled apps
       </label>
+      <label style="display: none;">
+        <input type="checkbox" id="filter-installed-apps" checked> Include installed apps
+      </label>
       <button onclick="applyFilters()">Apply Filters</button>
       <button onclick="toggleFilterModal()">Close</button>
     </div>
@@ -225,6 +228,7 @@
     const appItems = [...appList.getElementsByClassName('app-item')];
     let currentSortOrder = 'asc';
     let currentSortCriteria = 'default';
+    let installedApps = [];
 
     function sortBy(criteria) {
       currentSortCriteria = criteria;
@@ -289,6 +293,7 @@
       const includeSystemApps = document.getElementById('filter-system-apps').checked;
       const includeEnabledApps = document.getElementById('filter-enabled-apps').checked;
       const includeDisabledApps = document.getElementById('filter-disabled-apps').checked;
+      const includeInstalledApps = document.getElementById('filter-installed-apps').checked;
 
       let visibleItemCount = 0;
       appItems.forEach(item => {
@@ -302,7 +307,15 @@
         const showEnabledApp = includeEnabledApps && isEnabled;
         const showDisabledApp = includeDisabledApps && isDisabled;
 
-        if ((showUserApp || showSystemApp) && (showEnabledApp || showDisabledApp)) {
+        let isVisible = (showUserApp || showSystemApp) && (showEnabledApp || showDisabledApp);
+        if (isVisible && !includeInstalledApps) {
+          const packageName = item.dataset.packageName;
+          if (installedApps.includes(packageName)) {
+            isVisible = false;
+           }
+        }
+
+        if (isVisible) {
           item.style.display = '';
           visibleItemCount++;
         } else {
@@ -341,6 +354,12 @@
       const searchInput = document.getElementById('search-input');
       searchInput.value = '';
       searchInput.dispatchEvent(new Event('input'));
+    }
+
+    function setInstalledApps(apps) {
+      const filter = document.getElementById('filter-installed-apps');
+      filter.parentNode.style.display = '';
+      installedApps = apps;
     }
   </script>
 </body>

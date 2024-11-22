@@ -107,7 +107,6 @@ class BackupReaderActivity : ComponentActivity() {
             viewModel.setUri(Uri.parse(uriString))
         }
 
-
         setContent {
             AppListBackupTheme {
                 BackupScreen(
@@ -145,6 +144,7 @@ fun BackupScreen(
 ) {
     val uri by viewModel.uri.observeAsState()
     val backups by viewModel.backupFiles.observeAsState(initial = emptyList())
+    val installedPackages by viewModel.installedPackages.observeAsState(initial = emptyList())
 
     fun onSelect(uri: Uri) {
         viewModel.setUri(uri)
@@ -174,13 +174,20 @@ fun BackupScreen(
         },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        DisplayHtmlContent(uri, backups, onSelect = ::onSelect, runBackup, Modifier.padding(innerPadding))
+        DisplayHtmlContent(uri, installedPackages = installedPackages, backups, onSelect = ::onSelect, runBackup, Modifier.padding(innerPadding))
     }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun DisplayHtmlContent(uri: Uri?, backups: List<BackupFile>, onSelect: (uri: Uri) -> Unit, runBackup: () -> Unit, modifier: Modifier = Modifier) {
+fun DisplayHtmlContent(
+    uri: Uri?,
+    installedPackages: List<String>,
+    backups: List<BackupFile>,
+    onSelect: (uri: Uri) -> Unit,
+    runBackup: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     var expanded by remember { mutableStateOf(false) }
 
     val titleFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
@@ -198,6 +205,12 @@ fun DisplayHtmlContent(uri: Uri?, backups: List<BackupFile>, onSelect: (uri: Uri
                         return true
                     }
                     return false
+                }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    val packagesList = installedPackages.joinToString(",") { "\"$it\"" }
+                    view?.evaluateJavascript("setInstalledApps([$packagesList])")  { }
                 }
             }
         }
