@@ -10,7 +10,7 @@ class BackupReceiver : BroadcastReceiver() {
     private val tag: String = "BackupReceiver"
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d(tag, "receive ${intent.toString()}")
+        Log.d(tag, "receive $intent")
         val serviceIntent = Intent(
             context,
             BackupService::class.java

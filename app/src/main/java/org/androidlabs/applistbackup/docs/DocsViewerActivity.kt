@@ -20,6 +20,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import org.androidlabs.applistbackup.R
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
 
 class DocsViewerActivity : ComponentActivity() {
@@ -37,7 +38,10 @@ class DocsViewerActivity : ComponentActivity() {
                             title = { Text(name) },
                             navigationIcon = {
                                 IconButton(onClick = { onBackPressedDispatcher.onBackPressed() }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = getString(R.string.back)
+                                    )
                                 }
                             },
                         )

@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -195,11 +196,11 @@ fun ActivityState(
             link = LinkAnnotation.Clickable(
                 tag = "TAG",
                 linkInteractionListener = {
-                    openDoc("Terms and Conditions", "terms")
+                    openDoc(context.getString(R.string.terms), "terms")
                 },
             ),
         ) {
-            append("Terms and Conditions")
+            append(context.getString(R.string.terms))
         }
     }
 
@@ -208,11 +209,11 @@ fun ActivityState(
             link = LinkAnnotation.Clickable(
                 tag = "TAG",
                 linkInteractionListener = {
-                    openDoc("Privacy Policy", "privacy")
+                    openDoc(context.getString(R.string.privacy), "privacy")
                 },
             ),
         ) {
-            append("Privacy Policy")
+            append(context.getString(R.string.privacy))
         }
     }
 
@@ -230,7 +231,7 @@ fun ActivityState(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription = "Icon",
+                contentDescription = stringResource(R.string.icon),
                 modifier = Modifier.size(48.dp)
             )
 
@@ -247,12 +248,12 @@ fun ActivityState(
         ) {
             if (isNotificationEnabled.value != true) {
                 Text(
-                    text = "Notifications are disabled.\nEnable notifications for correct functionality.",
+                    text = stringResource(R.string.notifications_disabled),
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { context.startActivity(settingsIntent) }) {
-                    Text(text = "Enable Notifications")
+                    Text(text = stringResource(R.string.notifications_enable))
                 }
             }
 
@@ -260,7 +261,7 @@ fun ActivityState(
 
             if (backupUri.value != null) {
                 Button(onClick = runBackup) {
-                    Text(text = "Run Backup")
+                    Text(text = stringResource(R.string.run_backup))
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -269,12 +270,12 @@ fun ActivityState(
                     if (isLoading.value) {
                         LoadingView()
                     } else {
-                        Text(text = "View backup")
+                        Text(text = stringResource(R.string.view_backup))
                     }
                 }
             } else {
                 Text(
-                    text = "Please select a backup folder\nto begin using the app.",
+                    text = stringResource(R.string.destination_not_set),
                     textAlign = TextAlign.Center
                 )
             }
@@ -285,12 +286,12 @@ fun ActivityState(
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             Button(onClick = selectBackupFolder) {
-                Text(text = if (backupUri.value == null) "Choose backup destination" else "Change backup destination")
+                Text(text = stringResource(if (backupUri.value == null) R.string.destination_set else R.string.destination_change))
             }
 
             if (backupUri.value !== null) {
                 Text(
-                    text = "Current: ${BackupService.getReadablePathFromUri(backupUri.value)}",
+                    text = context.getString(R.string.destination_current, BackupService.getReadablePathFromUri(backupUri.value)),
                     fontSize = 12.sp,
                 )
             }
@@ -298,13 +299,13 @@ fun ActivityState(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(onClick = faq) {
-                Text(text = "FAQ")
+                Text(text = stringResource(R.string.faq))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Version: $version",
+                text = context.getString(R.string.version, version),
                 fontSize = 12.sp
             )
 
