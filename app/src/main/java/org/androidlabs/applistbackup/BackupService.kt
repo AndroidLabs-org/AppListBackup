@@ -194,8 +194,8 @@ class BackupService : Service() {
             }
 
             val notification = NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
-                .setContentTitle("Backup started")
-                .setContentText("In progress...")
+                .setContentTitle(getString(R.string.backup_started))
+                .setContentText(getString(R.string.in_progress))
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .build()
 
@@ -245,14 +245,14 @@ class BackupService : Service() {
                     <img src="${drawableToBase64(icon)}" alt="$name">
                     <div class="app-details">
                         <strong class="app-name">$name</strong><br>
-                        <strong>Package:</strong> $packageName<br>
-                        <strong>System:</strong> ${isSystem}<br>
-                        <strong>Enabled:</strong> ${appInfo.enabled}<br>
-                        <strong>Version:</strong> ${packageInfo.versionName} (${packageInfo.longVersionCode})<br>
-                        <strong>Min SDK version:</strong> ${appInfo.minSdkVersion}<br>
-                        <strong>Installed at:</strong> ${outputDateFormat.format(Date(packageInfo.firstInstallTime))}<br>
-                        <strong>Last update at:</strong> ${outputDateFormat.format(Date(packageInfo.lastUpdateTime))}<br>
-                        <strong>Links</strong> (is working only for published apps):<br>
+                        <strong>${getString(R.string.package_title)}:</strong> $packageName<br>
+                        <strong>${getString(R.string.system_title)}:</strong> ${isSystem}<br>
+                        <strong>${getString(R.string.enabled_title)}:</strong> ${appInfo.enabled}<br>
+                        <strong>${getString(R.string.version_title)}:</strong> ${packageInfo.versionName} (${packageInfo.longVersionCode})<br>
+                        <strong>${getString(R.string.min_sdk_version_title)}:</strong> ${appInfo.minSdkVersion}<br>
+                        <strong>${getString(R.string.installed_at_title)}:</strong> ${outputDateFormat.format(Date(packageInfo.firstInstallTime))}<br>
+                        <strong>${getString(R.string.updated_at_title)}:</strong> ${outputDateFormat.format(Date(packageInfo.lastUpdateTime))}<br>
+                        <strong>${getString(R.string.links_title)}</strong> (${getString(R.string.links_title_details)}):<br>
                         <a target="_blank" rel="noopener noreferrer" href="https://play.google.com/store/apps/details?id=$packageName">Play Market</a> | 
                         <a target="_blank" rel="noopener noreferrer" href="https://f-droid.org/packages/$packageName">F-Droid</a>
                     </div>
@@ -272,7 +272,7 @@ class BackupService : Service() {
                         outputStream.write(finalHtml.toByteArray())
                     }
                 } else {
-                    throw Error("Unable to create backup file.")
+                    throw Error(getString(R.string.file_create_failed))
                 }
 
                 val openFileIntent = Intent(this, BackupReaderActivity::class.java).apply {
@@ -283,9 +283,10 @@ class BackupService : Service() {
 
                 val pendingIntent = PendingIntent.getActivity(this, 0, openFileIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-                val type = if (source != null && source == "tasker") "Automatic" else "Manual"
-                val successfulTitle = "Backup done for ${apps.count()} apps ($type)"
-                val successfulText = "${apps.count() - systemAppsCount} users apps and $systemAppsCount system apps."
+                val type = getString(if (source != null && source == "tasker") R.string.automatic else R.string.manual)
+                val userAppsCount = apps.count() - systemAppsCount
+                val successfulTitle = getString(R.string.backup_done_title, apps.count().toString(), type)
+                val successfulText = getString(R.string.backup_done_text, userAppsCount.toString(), systemAppsCount.toString())
 
                 val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
                     .setContentTitle(successfulTitle)
@@ -303,7 +304,7 @@ class BackupService : Service() {
                 }
             } catch (exception: Exception) {
                 val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
-                    .setContentTitle("Backup failed")
+                    .setContentTitle(getString(R.string.backup_failed))
                     .setContentText(exception.localizedMessage)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .build()
@@ -321,8 +322,8 @@ class BackupService : Service() {
             Log.d(tag, "failed due no destination")
 
             val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
-                .setContentTitle("Backup failed")
-                .setContentText("You need to setup destination folder at first.")
+                .setContentTitle(getString(R.string.backup_failed))
+                .setContentText(getString(R.string.destination_not_set_notification))
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .build()
 
