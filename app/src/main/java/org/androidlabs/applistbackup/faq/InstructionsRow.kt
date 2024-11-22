@@ -10,12 +10,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-data class Instruction(val title: String, val description: String, val details: String? = null)
+data class Instruction(val title: String, var description: String, val boldDescription: Boolean = false, val details: String? = null)
 
 @Composable
 fun InstructionRow(
-    instruction: Instruction,
-    isDescriptionBold: Boolean
+    instruction: Instruction
 ) {
     Column {
         Text(
@@ -28,7 +27,7 @@ fun InstructionRow(
 
         Text(
             text = instruction.description,
-            fontWeight = if (isDescriptionBold) FontWeight.Bold else FontWeight.Normal
+            fontWeight = if (instruction.boldDescription) FontWeight.Bold else FontWeight.Normal
         )
 
         if (instruction.details != null) {

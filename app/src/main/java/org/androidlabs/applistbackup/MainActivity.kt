@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,18 +34,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.androidlabs.applistbackup.docs.DocsViewerActivity
 import org.androidlabs.applistbackup.faq.InstructionsActivity
 import org.androidlabs.applistbackup.reader.BackupReaderActivity
+import org.androidlabs.applistbackup.ui.LoadingView
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
 
 class MainActivity : ComponentActivity() {
@@ -65,10 +72,9 @@ class MainActivity : ComponentActivity() {
         setFolderLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 result.data?.data?.let { uri ->
-                    val takeFlags = result.data?.flags?.and(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    if (takeFlags != null) {
-                        contentResolver.takePersistableUriPermission(uri, takeFlags)
-                    }
+                    val takeFlags = (result.data?.flags ?: 0) and
+                            (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    contentResolver.takePersistableUriPermission(uri, takeFlags)
 
                     viewModel.saveBackupUri(uri)
                 }
@@ -103,12 +109,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openLastBackup() {
-        val lastBackupUri = BackupService.getLastCreatedFileUri(this)
-        val intent = Intent(this, BackupReaderActivity::class.java)
-        if (lastBackupUri != null) {
-            intent.putExtra("uri", lastBackupUri.toString())
+        lifecycleScope.launch {
+            viewModel.setLoading(true)
+            val lastBackupUri = withContext(Dispatchers.IO) {
+                BackupService.getLastCreatedFileUri(this@MainActivity)
+            }
+
+            val intent = withContext(Dispatchers.Default) {
+                Intent(this@MainActivity, BackupReaderActivity::class.java).apply {
+                    if (lastBackupUri != null) {
+                        putExtra("uri", lastBackupUri.toString())
+                    }
+                }
+            }
+            startActivity(intent)
+            viewModel.setLoading(false)
         }
-        startActivity(intent)
     }
 
     private fun runBackup() {
@@ -148,6 +164,7 @@ fun ActivityState(
 ) {
     val isNotificationEnabled = viewModel.notificationEnabled.observeAsState(initial = false)
     val backupUri = viewModel.backupUri.observeAsState()
+    val isLoading = viewModel.isLoading.observeAsState(initial = false)
 
     LaunchedEffect(key1 = true) {
         viewModel.refreshNotificationStatus()
@@ -174,6 +191,32 @@ fun ActivityState(
         }
     }
 
+    val termsString = buildAnnotatedString {
+        withLink(
+            link = LinkAnnotation.Clickable(
+                tag = "TAG",
+                linkInteractionListener = {
+                    openDoc(context.getString(R.string.terms), "terms")
+                },
+            ),
+        ) {
+            append(context.getString(R.string.terms))
+        }
+    }
+
+    val privacyString = buildAnnotatedString {
+        withLink(
+            link = LinkAnnotation.Clickable(
+                tag = "TAG",
+                linkInteractionListener = {
+                    openDoc(context.getString(R.string.privacy), "privacy")
+                },
+            ),
+        ) {
+            append(context.getString(R.string.privacy))
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -188,7 +231,7 @@ fun ActivityState(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription = "Icon",
+                contentDescription = stringResource(R.string.icon),
                 modifier = Modifier.size(48.dp)
             )
 
@@ -205,12 +248,12 @@ fun ActivityState(
         ) {
             if (isNotificationEnabled.value != true) {
                 Text(
-                    text = "Notifications are disabled.\nEnable notifications for correct functionality.",
+                    text = stringResource(R.string.notifications_disabled),
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { context.startActivity(settingsIntent) }) {
-                    Text(text = "Enable Notifications")
+                    Text(text = stringResource(R.string.notifications_enable))
                 }
             }
 
@@ -218,17 +261,21 @@ fun ActivityState(
 
             if (backupUri.value != null) {
                 Button(onClick = runBackup) {
-                    Text(text = "Run Backup")
+                    Text(text = stringResource(R.string.run_backup))
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button(onClick = openLastBackup) {
-                    Text(text = "View backup")
+                Button(onClick = openLastBackup, enabled = !isLoading.value) {
+                    if (isLoading.value) {
+                        LoadingView()
+                    } else {
+                        Text(text = stringResource(R.string.view_backup))
+                    }
                 }
             } else {
                 Text(
-                    text = "Please select a backup folder\nto begin using the app.",
+                    text = stringResource(R.string.destination_not_set),
                     textAlign = TextAlign.Center
                 )
             }
@@ -239,12 +286,12 @@ fun ActivityState(
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             Button(onClick = selectBackupFolder) {
-                Text(text = if (backupUri.value == null) "Choose backup destination" else "Change backup destination")
+                Text(text = stringResource(if (backupUri.value == null) R.string.destination_set else R.string.destination_change))
             }
 
             if (backupUri.value !== null) {
                 Text(
-                    text = "Current: ${BackupService.getReadablePathFromUri(backupUri.value)}",
+                    text = context.getString(R.string.destination_current, BackupService.getReadablePathFromUri(backupUri.value)),
                     fontSize = 12.sp,
                 )
             }
@@ -252,34 +299,28 @@ fun ActivityState(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(onClick = faq) {
-                Text(text = "FAQ")
+                Text(text = stringResource(R.string.faq))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Version: $version",
+                text = context.getString(R.string.version, version),
                 fontSize = 12.sp
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ClickableText(
-                text = AnnotatedString("Terms and Conditions"),
+            Text(
+                text = termsString,
                 style = TextStyle(fontSize = 12.sp, color = MaterialTheme.colorScheme.primary),
-                onClick = {
-                    openDoc("Terms and Conditions", "terms")
-                }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            ClickableText(
-                text = AnnotatedString("Privacy Policy"),
+            Text(
+                text = privacyString,
                 style = TextStyle(fontSize = 12.sp, color = MaterialTheme.colorScheme.primary),
-                onClick = {
-                    openDoc("Privacy Policy", "privacy")
-                }
             )
         }
     }

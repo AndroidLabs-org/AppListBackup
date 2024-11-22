@@ -42,7 +42,7 @@ fun InstructionsIntent(appName: String) {
             fontWeight = FontWeight.SemiBold
         )
 
-        Text(text = "$appName provides a quick backup API. You can trigger $appName by sending Intent Broadcasts. All values are clickable to copy to clipboard.")
+        Text(text = stringResource(R.string.intent_integration_description_2, appName))
 
         BlockView(title = "Intent API") {
             ValueRow(title = "Package:", value = packageName)
@@ -50,24 +50,19 @@ fun InstructionsIntent(appName: String) {
             ValueRow(title = "Action:", value = action)
         }
 
-        Text(text = "You can use ADB or automation tools like MacroDroid to broadcast intents to trigger hidings. Here are some examples.")
+        Text(text = stringResource(R.string.intent_integration_description_2))
 
         BlockView(title = "Shell (ADB)") {
             ValueRow(value = "adb shell am broadcast -a $action -n $packageName/.BackupReceiver")
         }
 
-        Text("""
-        Example to trigger the backup by Tasker:
-
-        1. Open Tasker and create a new profile.
-        2. Add a new task and press + to add an Action.
-        3. Choose 'System' > 'Send Intent'.
-        4. Set the following parameters:
-            - Action: "$action"
-            - Package: "$packageName"
-            - Target: "Broadcast Receiver"
-        5. Press back to save the task and activate the profile.
-        """.trimIndent())
+        Text(text = stringResource(R.string.intent_integration_example, action, packageName).split("\n").joinToString("\n") { line ->
+            var newLine = line.trim()
+            if (newLine.startsWith("-")) {
+                newLine = "    $newLine";
+            }
+            newLine
+        })
     }
 }
 
@@ -108,7 +103,7 @@ fun ValueRow(
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("Copied Text", value)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(context, "Text copied to clipboard", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.text_copied), Toast.LENGTH_SHORT).show()
     }
 
     val annotatedString = buildAnnotatedString {

@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.FileProvider
@@ -80,12 +81,12 @@ class BackupReaderActivity : ComponentActivity() {
                         viewModel.setUri(tempFileUri)
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, getString(R.string.error_message, e.message), Toast.LENGTH_LONG).show()
                     }
                 } else {
                     Toast.makeText(
                         this,
-                        "Please select a backup file created by this application",
+                        getString(R.string.wrong_file),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -105,7 +106,6 @@ class BackupReaderActivity : ComponentActivity() {
         if (uriString != null) {
             viewModel.setUri(Uri.parse(uriString))
         }
-
 
         setContent {
             AppListBackupTheme {
@@ -144,6 +144,7 @@ fun BackupScreen(
 ) {
     val uri by viewModel.uri.observeAsState()
     val backups by viewModel.backupFiles.observeAsState(initial = emptyList())
+    val installedPackages by viewModel.installedPackages.observeAsState(initial = emptyList())
 
     fun onSelect(uri: Uri) {
         viewModel.setUri(uri)
@@ -152,17 +153,20 @@ fun BackupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Backup") },
+                title = { Text(text = stringResource(R.string.backup)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = onBrowse) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_browse),
-                            contentDescription = "Browse",
+                            contentDescription = stringResource(R.string.browse),
                         )
                     }
                 }
@@ -170,13 +174,20 @@ fun BackupScreen(
         },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        DisplayHtmlContent(uri, backups, onSelect = ::onSelect, runBackup, Modifier.padding(innerPadding))
+        DisplayHtmlContent(uri, installedPackages = installedPackages, backups, onSelect = ::onSelect, runBackup, Modifier.padding(innerPadding))
     }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun DisplayHtmlContent(uri: Uri?, backups: List<BackupFile>, onSelect: (uri: Uri) -> Unit, runBackup: () -> Unit, modifier: Modifier = Modifier) {
+fun DisplayHtmlContent(
+    uri: Uri?,
+    installedPackages: List<String>,
+    backups: List<BackupFile>,
+    onSelect: (uri: Uri) -> Unit,
+    runBackup: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     var expanded by remember { mutableStateOf(false) }
 
     val titleFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
@@ -195,6 +206,12 @@ fun DisplayHtmlContent(uri: Uri?, backups: List<BackupFile>, onSelect: (uri: Uri
                     }
                     return false
                 }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    val packagesList = installedPackages.joinToString(",") { "\"$it\"" }
+                    view?.evaluateJavascript("setInstalledApps([$packagesList])")  { }
+                }
             }
         }
     }
@@ -212,14 +229,17 @@ fun DisplayHtmlContent(uri: Uri?, backups: List<BackupFile>, onSelect: (uri: Uri
                 modifier = Modifier.padding(start = 16.dp, end = 4.dp)
             ) {
                 Text(
-                    text = BackupService.parseDateFromUri(uri)?.let { titleFormatter.format(it) } ?: "Backup",
+                    text = BackupService.parseDateFromUri(uri)?.let { titleFormatter.format(it) } ?: stringResource(R.string.backup),
                     modifier = Modifier
                         .weight(1f)
                 )
 
                 Box {
                     IconButton(onClick = { expanded = true }) {
-                        Icon(Icons.Filled.ArrowDropDown, contentDescription = "Back")
+                        Icon(
+                            Icons.Filled.ArrowDropDown,
+                            contentDescription = stringResource(R.string.back)
+                        )
                     }
 
                     DropdownMenu(
@@ -243,12 +263,12 @@ fun DisplayHtmlContent(uri: Uri?, backups: List<BackupFile>, onSelect: (uri: Uri
     } else {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "No backup found")
+                Text(text = stringResource(R.string.no_backup_found))
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(onClick = runBackup) {
-                    Text(text = "Run Backup")
+                    Text(text = stringResource(R.string.run_backup))
                 }
             }
         }

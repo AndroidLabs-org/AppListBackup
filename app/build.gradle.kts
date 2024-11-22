@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "org.androidlabs.applistbackup"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "org.androidlabs.applistbackup"
-        minSdk = 33
-        targetSdk = 34
+        minSdk = 28
+        targetSdk = 35
         versionCode = 8
         versionName = "1.0.3"
 

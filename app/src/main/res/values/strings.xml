@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">AppListBackup</string>
     <string name="appwidget_text">Backup now</string>
     <string name="appwidget_text_in_progress">Backing up</string>
@@ -6,10 +6,116 @@
     <string name="shortcut_backup_label">Run Backup</string>
     <string name="shortcut_backup_long_label">Run App List Backup</string>
     <string name="backup_location">Where is my backup located?</string>
+    <string name="backup_location_details">The backup files are saved in a folder chosen by you:</string>
+    <string name="backup_location_not_set">Not set. Please, go back and set destination</string>
     <string name="tasker_integration">How does Tasker integration work?</string>
+    <string name="tasker_integration_description">
+        1. Open Tasker and create a new profile.\n
+        2. Add a new task and press + to add an Action.\n
+        3. Choose the \'Plugin\' category and select \'%1$s\'.\n
+        4. On the screen you are viewing, locate the pencil icon (✎) next to the \'Configuration\' section. Tap this to open the detailed configuration settings.\n
+        5. Press the back button on your device or use the back navigation button on the top-left corner of the screen to return to the main Action Edit screen.\n
+        6. Configure any additional parameters of the task as needed.\n
+        7. Save and activate the profile to automate backups.\n\n
+        Alternative:\n
+        1. Open Tasker and create a new profile.\n
+        2. Add a new task and press + to add an Action.\n
+        3. Choose the \'App\' category and select \'Launch App\'.\n
+        4. Press and hold \'%1$s\'.\n
+        5. Choose \'RunBackupActivity\'.\n
+        6. Press the back button on your device or use the back navigation button on the top-left corner of the screen to return to the main Action Edit screen.\n
+        7. Configure any additional parameters of the task as needed.\n
+        8. Save and activate the profile to automate backups.
+    </string>
     <string name="tasker_timeout">What is the timeout for Tasker?</string>
+    <string name="tasker_timeout_description">
+        By default, Tasker has a timeout of 60 seconds for tasks when using plugins. If you have a large application list, this default timeout might not be sufficient, as generating the HTML file can take considerable time. For example, with around 200 apps, it can take approximately 20 seconds on a newer device, and significantly longer on older phones.\n\n
+        To avoid timeouts, we recommend extending the timeout duration. Setting the timeout to at least 10 minutes (600 seconds) is a healthier option for handling large application lists efficiently. You can adjust this setting in Tasker to ensure the task completes without interruptions.\n\n
+        Steps to adjust the Tasker plugin timeout:\n
+        1. Open Tasker.\n
+        2. Navigate to the task using the plugin.\n
+        3. Edit the task and find the timeout setting.\n
+        4. Set the timeout to a longer duration, such as 600 seconds (10 minutes).\n
+        5. Save and run the task again.\n\n
+        This adjustment will help ensure that the task runs smoothly, even with a large number of applications to process.
+    </string>
     <string name="backups_after_uninstalling">What happens to my backups after I uninstall the app?</string>
+    <string name="backups_after_uninstalling_description">Your files will stay in the desired folder even if you delete the app.\nIf you change the backup destination, the old files will remain in the old destination.</string>
     <string name="automate_integration">How does Automate integration work?</string>
+    <string name="automate_integration_description">
+        1. Open the Automate app on your device.\n
+        2. Tap on the \"+\" button to create a new flow.\n
+        3. Press the \"+\" icon to add a new block.\n
+        4. Navigate to the \'Apps\' section and choose \'Plug-in action\'.\n
+        5. Tap on the added block to open its settings.\n
+        6. Press \'Pick plug-in\' and select \'%1$s\'.\n
+        7. Tap the \'Save\' button to confirm your selection.\n
+        8. Configure any additional parameters required for your flow.\n
+        9. Save the flow by pressing the save icon. You can now run this flow to automate backups.
+    </string>
     <string name="macrodroid_integration">How does MacroDroid integration work?</string>
+    <string name="macrodroid_integration_description">
+        1. Open the MacroDroid app on your device.\n
+        2. Tap on the \"+\" button to create a new macro.\n
+        3. Configure the triggers that will initiate your macro.\n
+        4. Press the \"+\" icon in the Actions section to add a new action.\n
+        5. Choose the \'Applications\' category and select \'Tasker/Locale Plugin\'.\n
+        6. In the dialog, choose \'%1$s\' and select the appropriate event that appears below it. Press \'OK\' to confirm in the next dialog.\n
+        7. Configure any additional parameters required for your macro.\n
+        8. Save the macro by pressing the save icon. You can now run this macro to automate backups.
+    </string>
     <string name="intent_integration">How does Intent integration work?</string>
+    <string name="intent_integration_description_1">%1$s provides a quick backup API. You can trigger %1$s by sending Intent Broadcasts. All values are clickable to copy to clipboard.</string>
+    <string name="intent_integration_description_2">You can use ADB or automation tools like MacroDroid to broadcast intents to trigger hidings. Here are some examples.</string>
+    <string name="intent_integration_example">
+        Example to trigger the backup by Tasker:\n
+        1. Open Tasker and create a new profile.\n
+        2. Add a new task and press + to add an Action.\n
+        3. Choose \'System\' &gt; \'Send Intent\'.\n
+        4. Set the following parameters:\n
+            - Action: &quot;%1$s&quot;\n
+            - Package: &quot;%2$s&quot;\n
+            - Target: &quot;Broadcast Receiver&quot;\n
+        5. Press back to save the task and activate the profile.
+    </string>
+    <string name="loading">Loading…</string>
+    <string name="error_message">Error: %1$s</string>
+    <string name="wrong_file">Please select a backup file created by this application</string>
+    <string name="backup">Backup</string>
+    <string name="back">Back</string>
+    <string name="browse">Browse</string>
+    <string name="no_backup_found">No backup found</string>
+    <string name="run_backup">Run backup</string>
+    <string name="tasker_command">Backup installed apps.</string>
+    <string name="terms">Terms and Conditions</string>
+    <string name="privacy">Privacy Policy</string>
+    <string name="icon">Icon</string>
+    <string name="notifications_disabled">Notifications are disabled.\nEnable notifications for correct functionality.</string>
+    <string name="notifications_enable">Enable Notifications</string>
+    <string name="view_backup">View backup</string>
+    <string name="destination_not_set">Please select a backup folder\nto begin using the app.</string>
+    <string name="destination_set">Choose backup destination</string>
+    <string name="destination_change">Change backup destination</string>
+    <string name="destination_current">Current: %1$s</string>
+    <string name="faq">FAQ</string>
+    <string name="version">Version: %1$s</string>
+    <string name="backup_started">Backup started</string>
+    <string name="in_progress" tools:ignore="PrivateResource">In progress…</string>
+    <string name="backup_failed">Backup failed</string>
+    <string name="destination_not_set_notification">You need to setup destination folder at first.</string>
+    <string name="file_create_failed">Unable to create backup file.</string>
+    <string name="automatic">Automatic</string>
+    <string name="manual">Manual</string>
+    <string name="backup_done_title">Backup done for %1$s apps (%2$s)</string>
+    <string name="backup_done_text">%1$s users apps and %2$s system apps.</string>
+    <string name="package_title">Package</string>
+    <string name="system_title">System</string>
+    <string name="enabled_title">Enabled</string>
+    <string name="version_title">Version</string>
+    <string name="min_sdk_version_title">Min SDK version</string>
+    <string name="installed_at_title">Installed at</string>
+    <string name="updated_at_title">Last update at</string>
+    <string name="links_title">Links</string>
+    <string name="links_title_details">is working only for published apps</string>
+    <string name="text_copied">Text copied to clipboard</string>
 </resources>

@@ -18,7 +18,7 @@ import com.joaomgcd.taskerpluginlibrary.runner.TaskerPluginResultSucess
 class TaskerPluginHelper(config: TaskerPluginConfig<Unit>) : TaskerPluginConfigHelperNoOutputOrInput<TaskerPluginRunner>(config) {
     override val runnerClass: Class<TaskerPluginRunner> get() = TaskerPluginRunner::class.java
     override fun addToStringBlurb(input: TaskerInput<Unit>, blurbBuilder: StringBuilder) {
-        blurbBuilder.append("Backup installed apps.")
+        blurbBuilder.append(context.getString(R.string.tasker_command))
     }
 }
 
