@@ -238,7 +238,8 @@ class BackupService : Service() {
                 <div class="app-item"
                 data-install-time="${packageInfo.firstInstallTime}"
                 data-update-time="${packageInfo.lastUpdateTime}"
-                data-app-name="$name" data-package-name="$packageName"
+                data-app-name="$name"
+                data-package-name="$packageName"
                 data-is-system-app="$isSystem"
                 data-is-enabled="${appInfo.enabled}"
                 data-default-order="$index">
