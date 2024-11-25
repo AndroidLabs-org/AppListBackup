@@ -31,12 +31,21 @@
       margin-bottom: 8px;
     }
 
+    .statistics-grid-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 16px;
+      row-gap: 4px;
+      align-items: center;
+    }
+
     .stat-item {
       display: flex;
       gap: 4px;
     }
 
     .stat-item b {
+      font-weight: 500;
       min-width: 0;
     }
 
@@ -165,46 +174,61 @@
 </head>
 
 <body>
-  <div class="statistics-grid">
-    <div class="stat-item">
-      <b><!-- LOCALISATION_CREATED_AT --></b>
-      <p><!-- BACKUP_TIME_PLACEHOLDER --></p>
+  <div>
+    <div class="controls">
+      <button id="toggle-statistics-button" onclick="toggleStatistics()"><!-- LOCALISATION_SHOW_LESS --></button>
     </div>
-    <div class="stat-item">
-      <b><!-- LOCALISATION_BACKUP_DURATION --></b>
-      <p><!-- BACKUP_DURATION_PLACEHOLDER --></p>
-    </div>
-    <div class="stat-item">
-      <b><!-- LOCALISATION_TRIGGER_TYPE --></b>
-      <p><!-- TRIGGER_TYPE_PLACEHOLDER --></p>
-    </div>
-    <div class="stat-item">
-      <b><!-- LOCALISATION_TOTAL_APPS_COUNT --></b>
-      <p><!-- TOTAL_APPS_COUNT_PLACEHOLDER --></p>
-    </div>
-    <div class="stat-item">
-      <b><!-- LOCALISATION_USER_APPS_COUNT --></b>
-      <p><!-- USER_APPS_COUNT_PLACEHOLDER --></p>
-    </div>
-    <div class="stat-item">
-      <b><!-- LOCALISATION_SYSTEM_APPS_COUNT --></b>
-      <p><!-- SYSTEM_APPS_COUNT_PLACEHOLDER --></p>
-    </div>
-    <div class="stat-item">
-      <b><!-- LOCALISATION_ENABLED_APPS_COUNT --></b>
-      <p><!-- ENABLED_APPS_COUNT_PLACEHOLDER --></p>
-    </div>
-    <div class="stat-item">
-      <b><!-- LOCALISATION_DISABLED_APPS_COUNT --></b>
-      <p><!-- DISABLED_APPS_COUNT_PLACEHOLDER --></p>
-    </div>
-    <div class="stat-item" id="installed-apps-count" style="display: none;">
-      <b><!-- LOCALISATION_INSTALLED_APPS_COUNT --></b>
-      <p></p>
-    </div>
-    <div class="stat-item" id="uninstalled-apps-count" style="display: none;">
-      <b><!-- LOCALISATION_UNINSTALLED_APPS_COUNT --></b>
-      <p>/p>
+    <div class="statistics-grid" id="statistics-container">
+      <div class="stat-item">
+        <b><!-- LOCALISATION_CREATED_AT --></b>
+        <p><!-- BACKUP_TIME_PLACEHOLDER --></p>
+      </div>
+      <div class="stat-item">
+        <b><!-- LOCALISATION_BACKUP_DURATION --></b>
+        <p><!-- BACKUP_DURATION_PLACEHOLDER --></p>
+      </div>
+      <div class="stat-item">
+        <b><!-- LOCALISATION_TRIGGER_TYPE --></b>
+        <p><!-- TRIGGER_TYPE_PLACEHOLDER --></p>
+      </div>
+      <b><!-- LOCALISATION_BACKUP_APPS --></b>
+      <div class="statistics-grid-columns">
+        <div class="stat-item">
+          <b><!-- LOCALISATION_TOTAL_APPS_COUNT --></b>
+          <p><!-- TOTAL_APPS_COUNT_PLACEHOLDER --></p>
+        </div>
+        <div class="stat-item">
+          <b><!-- LOCALISATION_USER_APPS_COUNT --></b>
+          <p><!-- USER_APPS_COUNT_PLACEHOLDER --></p>
+        </div>
+        <div class="stat-item">
+          <b><!-- LOCALISATION_SYSTEM_APPS_COUNT --></b>
+          <p><!-- SYSTEM_APPS_COUNT_PLACEHOLDER --></p>
+        </div>
+      </div>
+      <b><!-- LOCALISATION_APP_STATES --></b>
+      <div class="statistics-grid-columns">
+        <div class="stat-item">
+          <b><!-- LOCALISATION_ENABLED_APPS_COUNT --></b>
+          <p><!-- ENABLED_APPS_COUNT_PLACEHOLDER --></p>
+        </div>
+        <div class="stat-item">
+          <b><!-- LOCALISATION_DISABLED_APPS_COUNT --></b>
+          <p><!-- DISABLED_APPS_COUNT_PLACEHOLDER --></p>
+        </div>
+        <div class="stat-item" id="installed-apps-count" style="display: none;">
+          <b><!-- LOCALISATION_INSTALLED_APPS_COUNT --></b>
+          <p></p>
+        </div>
+        <div class="stat-item" id="uninstalled-apps-count" style="display: none;">
+          <b><!-- LOCALISATION_UNINSTALLED_APPS_COUNT --></b>
+          <p>/p>
+        </div>
+      </div>
+      <b><!-- LOCALISATION_INSTALL_SOURCE --></b>
+      <div class="statistics-grid-columns">
+        <!-- INSTALLERS_STATISTICS -->
+      </div>
     </div>
   </div>
   <div class="controls-container">
@@ -229,28 +253,39 @@
     <div class="modal-content">
       <h3><!-- LOCALISATION_SORTING --></h3>
       <label>
-        <input type="radio" name="sort" value="default" onclick="sortBy('default')" checked> <!-- LOCALISATION_SORT_BY_DEFAULT -->
+        <input type="radio" name="sort" value="default" onclick="sortBy('default')" checked>
+        <!-- LOCALISATION_SORT_BY_DEFAULT -->
       </label>
       <label>
-        <input type="radio" name="sort" value="installTime" onclick="sortBy('installTime')"> <!-- LOCALISATION_SORT_BY_INSTALL_TIME -->
+        <input type="radio" name="sort" value="installTime" onclick="sortBy('installTime')">
+        <!-- LOCALISATION_SORT_BY_INSTALL_TIME -->
       </label>
       <label>
-        <input type="radio" name="sort" value="updateTime" onclick="sortBy('updateTime')"> <!-- LOCALISATION_SORT_BY_UPDATE_TIME -->
+        <input type="radio" name="sort" value="updateTime" onclick="sortBy('updateTime')">
+        <!-- LOCALISATION_SORT_BY_UPDATE_TIME -->
       </label>
       <label>
-        <input type="radio" name="sort" value="appName" onclick="sortBy('appName')"> <!-- LOCALISATION_SORT_BY_APP_NAME -->
+        <input type="radio" name="sort" value="appName" onclick="sortBy('appName')">
+        <!-- LOCALISATION_SORT_BY_APP_NAME -->
       </label>
       <label>
-        <input type="radio" name="sort" value="packageName" onclick="sortBy('packageName')"> <!-- LOCALISATION_SORT_BY_PACKAGE_NAME -->
+        <input type="radio" name="sort" value="packageName" onclick="sortBy('packageName')">
+        <!-- LOCALISATION_SORT_BY_PACKAGE_NAME -->
       </label>
-      <br/>
+      <label>
+        <input type="radio" name="sort" value="installer" onclick="sortBy('installer')">
+        <!-- LOCALISATION_SORT_BY_INSTALLER -->
+      </label>
+      <br />
       <div>
         <h3><!-- LOCALISATION_ORDER --></h3>
         <label>
-          <input type="radio" name="sortOrder" value="asc" onclick="setSortOrder('asc')" checked> <!-- LOCALISATION_ORDER_ASCENDING -->
+          <input type="radio" name="sortOrder" value="asc" onclick="setSortOrder('asc')" checked>
+          <!-- LOCALISATION_ORDER_ASCENDING -->
         </label>
         <label>
-          <input type="radio" name="sortOrder" value="desc" onclick="setSortOrder('desc')"> <!-- LOCALISATION_ORDER_DESCENDING -->
+          <input type="radio" name="sortOrder" value="desc" onclick="setSortOrder('desc')">
+          <!-- LOCALISATION_ORDER_DESCENDING -->
         </label>
       </div>
       <button onclick="toggleSortModal()"><!-- LOCALISATION_CLOSE_BUTTON --></button>
@@ -276,6 +311,7 @@
       <label style="display: none;">
         <input type="checkbox" id="filter-installed-apps" checked> <!-- LOCALISATION_INCLUDE_INSTALLED_APPS -->
       </label>
+      <!-- INSTALLERS_FILTERS -->
       <button onclick="applyFilters()"><!-- LOCALISATION_APPLY_FILTERS_BUTTON --></button>
       <button onclick="toggleFilterModal()"><!-- LOCALISATION_CLOSE_BUTTON --></button>
     </div>
@@ -283,6 +319,7 @@
 
   <script>
     const appList = document.getElementById('app-list');
+    const installerFiltersData = {<!-- INSTALLERS_FILTERS_DATA -->};
     const noItemsPlaceholder = document.getElementById('no-items-placeholder');
     const appItems = [...appList.getElementsByClassName('app-item')];
     let currentSortOrder = 'asc';
@@ -308,6 +345,9 @@
           break;
         case 'packageName':
           compareFunction = (a, b) => a.dataset.packageName.localeCompare(b.dataset.packageName);
+          break;
+        case 'installer':
+          compareFunction = (a, b) => a.dataset.installer.localeCompare(b.dataset.installer);
           break;
       }
 
@@ -354,19 +394,28 @@
       const includeDisabledApps = document.getElementById('filter-disabled-apps').checked;
       const includeInstalledApps = document.getElementById('filter-installed-apps').checked;
 
+      const activeInstallerFilters = Object.keys(installerFiltersData).filter(
+        filterId => document.getElementById(filterId)?.checked
+      ).map(filterId => installerFiltersData[filterId]);
+
       let visibleItemCount = 0;
       appItems.forEach(item => {
         const isUserApp = item.dataset.isSystemApp === 'false';
         const isSystemApp = item.dataset.isSystemApp === 'true';
         const isEnabled = item.dataset.isEnabled === 'true';
         const isDisabled = item.dataset.isEnabled === 'false';
+        const installer = item.dataset.installer;
 
         const showUserApp = includeUserApps && isUserApp;
         const showSystemApp = includeSystemApps && isSystemApp;
         const showEnabledApp = includeEnabledApps && isEnabled;
         const showDisabledApp = includeDisabledApps && isDisabled;
+        const showInstallerApp = activeInstallerFilters.includes(installer);
 
-        let isVisible = (showUserApp || showSystemApp) && (showEnabledApp || showDisabledApp);
+        let isVisible =
+          (showUserApp || showSystemApp) &&
+          (showEnabledApp || showDisabledApp) &&
+          showInstallerApp;
         if (isVisible && !includeInstalledApps) {
           if (installedApps.includes(item.dataset.packageName)) {
             isVisible = false;
@@ -392,6 +441,15 @@
     function toggleFilterModal() {
       const filterModal = document.getElementById('filter-modal');
       filterModal.style.display = filterModal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function toggleStatistics() {
+      const container = document.getElementById('statistics-container');
+      const button = document.getElementById('toggle-statistics-button');
+      const isHidden = container.style.display === 'none';
+
+      container.style.display = isHidden ? 'grid' : 'none';
+      button.textContent = isHidden ? '<!-- LOCALISATION_SHOW_LESS -->' : '<!-- LOCALISATION_SHOW_MORE -->';
     }
 
     function togglePlaceholder(visibleItemCount) {
