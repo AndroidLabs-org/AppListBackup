@@ -18,6 +18,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -34,6 +36,44 @@ class InstructionsActivity : ComponentActivity() {
         val appName =
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0))
                 .toString()
+        val backupPath = BackupService.getReadablePathFromUri(BackupService.getBackupUri(this))
+
+        val instructions = listOf(
+            Instruction(
+                title = getString(R.string.backup_location),
+                description = getString(R.string.backup_location_details),
+                boldDescription = backupPath != "",
+                details = if (backupPath == "") {
+                    getString(R.string.backup_location_not_set)
+                } else {
+                    backupPath
+                }
+            ),
+            Instruction(
+                title = getString(R.string.backups_after_uninstalling),
+                description = getString(R.string.backups_after_uninstalling_description)
+            ),
+            Instruction(
+                title = getString(R.string.tasker_integration),
+                description = getString(R.string.tasker_integration_description, appName)
+            ),
+            Instruction(
+                title = getString(R.string.tasker_timeout),
+                description = getString(R.string.tasker_timeout_description)
+            ),
+            Instruction(
+                title = getString(R.string.automate_integration),
+                description = getString(R.string.automate_integration_description, appName)
+            ),
+            Instruction(
+                title = getString(R.string.macrodroid_integration),
+                description = getString(R.string.macrodroid_integration_description, appName)
+            )
+        ).map {
+            it.copy(
+                description = it.description.split("\n").joinToString("\n") { line -> line.trim() }
+            )
+        }
 
         setContent {
             AppListBackupTheme {
@@ -54,7 +94,7 @@ class InstructionsActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
                     BackupInstructionsScreen(
-                        BackupService.getReadablePathFromUri(BackupService.getBackupUri(this)),
+                        instructions,
                         appName,
                         Modifier.padding(innerPadding)
                     )
@@ -65,45 +105,9 @@ class InstructionsActivity : ComponentActivity() {
 }
 
 @Composable
-fun BackupInstructionsScreen(backupPath: String, appName: String, modifier: Modifier = Modifier) {
+fun BackupInstructionsScreen(instructions: List<Instruction>, appName: String, modifier: Modifier = Modifier) {
     val scrollState = rememberScrollState()
-
-    val instructions = listOf(
-        Instruction(
-            title = stringResource(id = R.string.backup_location),
-            description = stringResource(R.string.backup_location_details),
-            boldDescription = backupPath != "",
-            details = if (backupPath == "") {
-                stringResource(R.string.backup_location_not_set)
-            } else {
-                backupPath
-            }
-        ),
-        Instruction(
-            title = stringResource(id = R.string.backups_after_uninstalling),
-            description = stringResource(R.string.backups_after_uninstalling_description)
-        ),
-        Instruction(
-            title = stringResource(id = R.string.tasker_integration),
-            description = stringResource(id = R.string.tasker_integration_description, appName)
-        ),
-        Instruction(
-            title = stringResource(id = R.string.tasker_timeout),
-            description = stringResource(R.string.tasker_timeout_description)
-        ),
-        Instruction(
-            title = stringResource(id = R.string.automate_integration),
-            description = stringResource(id = R.string.automate_integration_description, appName)
-        ),
-        Instruction(
-            title = stringResource(id = R.string.macrodroid_integration),
-            description = stringResource(id = R.string.macrodroid_integration_description, appName)
-        )
-    ).map {
-        it.copy(
-            description = it.description.split("\n").joinToString("\n") { line -> line.trim() }
-        )
-    }
+    val expandedStates = remember { mutableStateMapOf<Int, Boolean>() }
 
     Column(
         modifier = modifier
@@ -112,12 +116,26 @@ fun BackupInstructionsScreen(backupPath: String, appName: String, modifier: Modi
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        instructions.forEach { instruction ->
+        instructions.forEachIndexed { index, instruction ->
+            val isExpanded = expandedStates[index] ?: false
             InstructionRow(
                 instruction = instruction,
+                isExpanded = isExpanded,
+                onToggle = {
+                    expandedStates[index] = !isExpanded
+                }
             )
         }
 
-        InstructionsIntent(appName)
+        val intentIndex = instructions.count()
+        val isIntentExpanded = expandedStates[intentIndex] ?: false
+
+        InstructionsIntent(
+            appName = appName,
+            isExpanded = isIntentExpanded,
+            onToggle = {
+                expandedStates[intentIndex] = !isIntentExpanded
+            }
+        )
     }
 }
