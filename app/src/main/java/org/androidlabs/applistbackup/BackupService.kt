@@ -15,6 +15,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import android.provider.DocumentsContract
@@ -217,6 +218,10 @@ class BackupService : Service() {
 
                 val template = assets.open("template.html").bufferedReader().use { it.readText() }
                 val appItems = StringBuilder()
+                val installerItems = StringBuilder()
+                val installerFilterItems = StringBuilder()
+                val installerFilterData = StringBuilder()
+                val appsByInstallerCount = mutableMapOf<String, Int>()
 
                 var systemAppsCount = 0
                 var appsCount = 0
@@ -243,6 +248,26 @@ class BackupService : Service() {
                         enabledAppsCount++
                     }
 
+                    val installerPackageName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        packageManager.getInstallSourceInfo(packageName).initiatingPackageName
+                    } else {
+                        packageManager.getInstallerPackageName(packageName)
+                    }
+
+                    val installerName = if (installerPackageName != null) {
+                        try {
+                            val applicationInfo = packageManager.getApplicationInfo(installerPackageName, 0)
+                            val appName = packageManager.getApplicationLabel(applicationInfo).toString()
+                            appName
+                        } catch (e: PackageManager.NameNotFoundException) {
+                            installerPackageName
+                        }
+                    } else {
+                        getString(R.string.none)
+                    }
+
+                    appsByInstallerCount[installerName] = appsByInstallerCount.getOrPut(installerName) { 0 } + 1
+
                     appItems.append(
                         """
                 <div class="app-item"
@@ -252,6 +277,7 @@ class BackupService : Service() {
                 data-package-name="$packageName"
                 data-is-system-app="$isSystem"
                 data-is-enabled="${appInfo.enabled}"
+                data-installer="$installerName"
                 data-default-order="$index">
                     <img src="${drawableToBase64(icon)}" alt="$name">
                     <div class="app-details">
@@ -263,12 +289,36 @@ class BackupService : Service() {
                         <strong>${getString(R.string.min_sdk_version_title)}:</strong> ${appInfo.minSdkVersion}<br>
                         <strong>${getString(R.string.installed_at_title)}:</strong> ${outputDateFormat.format(Date(packageInfo.firstInstallTime))}<br>
                         <strong>${getString(R.string.updated_at_title)}:</strong> ${outputDateFormat.format(Date(packageInfo.lastUpdateTime))}<br>
+                        <strong>${getString(R.string.installer)}:</strong> $installerName<br>
                         <strong>${getString(R.string.links_title)}</strong> (${getString(R.string.links_title_details)}):<br>
                         <a target="_blank" rel="noopener noreferrer" href="https://play.google.com/store/apps/details?id=$packageName">Play Market</a> | 
                         <a target="_blank" rel="noopener noreferrer" href="https://f-droid.org/packages/$packageName">F-Droid</a>
                     </div>
                 </div>
             """.trimIndent()
+                    )
+                }
+
+                appsByInstallerCount.forEach { (installer, count) ->
+                    val filterId = "filter-installer-${installer.lowercase().replace("\\s".toRegex(), "-")}"
+
+                    installerFilterData.append("\"$filterId\":\"$installer\",")
+
+                    installerFilterItems.append(
+                        """
+                        <label>
+                            <input type="checkbox" id="$filterId" checked> ${getString(R.string.include_installed_from)} $installer
+                        </label>
+                        """.trimIndent()
+                    )
+
+                    installerItems.append(
+                        """
+                        <div class="stat-item">
+                            <b>$installer</b>
+                            <p>$count</p>
+                       </div>
+                        """.trimIndent()
                     )
                 }
 
@@ -284,6 +334,9 @@ class BackupService : Service() {
 
                 val placeholders = mapOf(
                     "APP_ITEMS_PLACEHOLDER" to appItems.toString(),
+                    "INSTALLERS_STATISTICS" to installerItems.toString(),
+                    "INSTALLERS_FILTERS_DATA" to installerFilterData.toString(),
+                    "INSTALLERS_FILTERS" to installerFilterItems.toString(),
                     "BACKUP_TIME_PLACEHOLDER" to outputDateFormat.format(currentDate),
                     "TRIGGER_TYPE_PLACEHOLDER" to type,
                     "TOTAL_APPS_COUNT_PLACEHOLDER" to appsCount.toString(),
@@ -324,6 +377,12 @@ class BackupService : Service() {
                     "LOCALISATION_INCLUDE_INSTALLED_APPS" to getString(R.string.include_installed_apps),
                     "LOCALISATION_APPLY_FILTERS_BUTTON" to getString(R.string.apply_filters_button),
                     "LOCALISATION_BACKUP_DURATION" to getString(R.string.backup_duration),
+                    "LOCALISATION_SORT_BY_INSTALLER" to getString(R.string.sort_by_installer_name),
+                    "LOCALISATION_SHOW_MORE" to getString(R.string.show_more),
+                    "LOCALISATION_SHOW_LESS" to getString(R.string.show_less),
+                    "LOCALISATION_INSTALL_SOURCE" to getString(R.string.installer),
+                    "LOCALISATION_APP_STATES" to getString(R.string.app_states),
+                    "LOCALISATION_BACKUP_APPS" to getString(R.string.backup_apps),
                 )
 
                 var finalHtml = template
