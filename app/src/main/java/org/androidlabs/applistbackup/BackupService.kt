@@ -26,9 +26,11 @@ import org.androidlabs.applistbackup.reader.BackupReaderActivity
 import java.io.ByteArrayOutputStream
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 data class BackupFile(
@@ -180,6 +182,7 @@ class BackupService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(tag, "start: ${intent.toString()}")
+        val startDate = Date()
         val source = intent?.getStringExtra("source")
         createNotificationChannels()
 
@@ -216,6 +219,8 @@ class BackupService : Service() {
                 val appItems = StringBuilder()
 
                 var systemAppsCount = 0
+                var appsCount = 0
+                var enabledAppsCount = 0
                 val apps = packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
                 val activeApps = packageManager.queryIntentActivities(mainIntent, 0).map { it.activityInfo.packageName }
 
@@ -231,6 +236,11 @@ class BackupService : Service() {
                     val icon = packageManager.getApplicationIcon(appInfo)
                     if (isSystem) {
                         systemAppsCount++
+                    }
+                    appsCount++
+
+                    if (appInfo.enabled) {
+                        enabledAppsCount++
                     }
 
                     appItems.append(
@@ -263,8 +273,64 @@ class BackupService : Service() {
                 }
 
                 val fileName = "app-list-backup-$currentTime.html"
-                var finalHtml = template.replace("<!-- APP_ITEMS_PLACEHOLDER -->", appItems.toString())
-                finalHtml = finalHtml.replace("<!-- BACKUP_TIME_PLACEHOLDER -->", outputDateFormat.format(currentDate))
+                val type = getString(if (source != null && source == "tasker") R.string.automatic else R.string.manual)
+                val userAppsCount = appsCount - systemAppsCount
+                val disabledAppsCount = appsCount - enabledAppsCount
+
+                val durationMillis = Date().time - startDate.time
+                val durationSeconds = durationMillis / 1000.0
+                val decimalFormat = DecimalFormat("0.000 ${getString(R.string.seconds)}")
+                val formattedDuration = decimalFormat.format(durationSeconds)
+
+                val placeholders = mapOf(
+                    "APP_ITEMS_PLACEHOLDER" to appItems.toString(),
+                    "BACKUP_TIME_PLACEHOLDER" to outputDateFormat.format(currentDate),
+                    "TRIGGER_TYPE_PLACEHOLDER" to type,
+                    "TOTAL_APPS_COUNT_PLACEHOLDER" to appsCount.toString(),
+                    "USER_APPS_COUNT_PLACEHOLDER" to userAppsCount.toString(),
+                    "SYSTEM_APPS_COUNT_PLACEHOLDER" to systemAppsCount.toString(),
+                    "ENABLED_APPS_COUNT_PLACEHOLDER" to enabledAppsCount.toString(),
+                    "DISABLED_APPS_COUNT_PLACEHOLDER" to disabledAppsCount.toString(),
+                    "BACKUP_DURATION_PLACEHOLDER" to formattedDuration,
+
+                    "LOCALISATION_CREATED_AT" to getString(R.string.created_at),
+                    "LOCALISATION_TRIGGER_TYPE" to getString(R.string.trigger_type),
+                    "LOCALISATION_TOTAL_APPS_COUNT" to getString(R.string.total_apps_count),
+                    "LOCALISATION_USER_APPS_COUNT" to getString(R.string.user_apps_count),
+                    "LOCALISATION_SYSTEM_APPS_COUNT" to getString(R.string.system_apps_count),
+                    "LOCALISATION_ENABLED_APPS_COUNT" to getString(R.string.enabled_apps_count),
+                    "LOCALISATION_DISABLED_APPS_COUNT" to getString(R.string.disabled_apps_count),
+                    "LOCALISATION_INSTALLED_APPS_COUNT" to getString(R.string.installed_apps_count),
+                    "LOCALISATION_UNINSTALLED_APPS_COUNT" to getString(R.string.uninstalled_apps_count),
+                    "LOCALISATION_SEARCH_PLACEHOLDER" to getString(R.string.search_placeholder),
+                    "LOCALISATION_SORT_OPTIONS" to getString(R.string.sort_options),
+                    "LOCALISATION_FILTER_OPTIONS" to getString(R.string.filter_options),
+                    "LOCALISATION_NO_ITEMS_PLACEHOLDER" to getString(R.string.no_items_placeholder),
+                    "LOCALISATION_SORTING" to getString(R.string.sorting),
+                    "LOCALISATION_SORT_BY_DEFAULT" to getString(R.string.sort_by_default),
+                    "LOCALISATION_SORT_BY_INSTALL_TIME" to getString(R.string.sort_by_install_time),
+                    "LOCALISATION_SORT_BY_UPDATE_TIME" to getString(R.string.sort_by_update_time),
+                    "LOCALISATION_SORT_BY_APP_NAME" to getString(R.string.sort_by_app_name),
+                    "LOCALISATION_SORT_BY_PACKAGE_NAME" to getString(R.string.sort_by_package_name),
+                    "LOCALISATION_ORDER" to getString(R.string.order),
+                    "LOCALISATION_ORDER_ASCENDING" to getString(R.string.order_ascending),
+                    "LOCALISATION_ORDER_DESCENDING" to getString(R.string.order_descending),
+                    "LOCALISATION_CLOSE_BUTTON" to getString(R.string.close),
+                    "LOCALISATION_APPS_FILTERING" to getString(R.string.apps_filtering),
+                    "LOCALISATION_INCLUDE_USER_APPS" to getString(R.string.include_user_apps),
+                    "LOCALISATION_INCLUDE_SYSTEM_APPS" to getString(R.string.include_system_apps),
+                    "LOCALISATION_INCLUDE_ENABLED_APPS" to getString(R.string.include_enabled_apps),
+                    "LOCALISATION_INCLUDE_DISABLED_APPS" to getString(R.string.include_disabled_apps),
+                    "LOCALISATION_INCLUDE_INSTALLED_APPS" to getString(R.string.include_installed_apps),
+                    "LOCALISATION_APPLY_FILTERS_BUTTON" to getString(R.string.apply_filters_button),
+                    "LOCALISATION_BACKUP_DURATION" to getString(R.string.backup_duration),
+                )
+
+                var finalHtml = template
+
+                placeholders.forEach { (placeholder, value) ->
+                    finalHtml = finalHtml.replace("<!-- $placeholder -->", value)
+                }
 
                 val newFile = backupsDir.createFile("text/html", fileName)
 
@@ -284,9 +350,7 @@ class BackupService : Service() {
 
                 val pendingIntent = PendingIntent.getActivity(this, 0, openFileIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-                val type = getString(if (source != null && source == "tasker") R.string.automatic else R.string.manual)
-                val userAppsCount = apps.count() - systemAppsCount
-                val successfulTitle = getString(R.string.backup_done_title, apps.count().toString(), type)
+                val successfulTitle = getString(R.string.backup_done_title, appsCount.toString(), type)
                 val successfulText = getString(R.string.backup_done_text, userAppsCount.toString(), systemAppsCount.toString())
 
                 val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)

@@ -20,11 +20,32 @@
       margin-bottom: 16px;
     }
 
-    .backup-time {
-      text-align: center;
-      font-size: 16px;
-      color: #666;
+    .statistics-grid {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      gap: 4px;
+      flex-direction: column;
       margin-bottom: 8px;
+    }
+
+    .stat-item {
+      display: flex;
+      gap: 4px;
+    }
+
+    .stat-item b {
+      min-width: 0;
+    }
+
+    .stat-item p {
+      margin: 0;
+      min-width: 0;
+      color: #666;
+      text-align: right;
+      flex: 1;
     }
 
     .controls {
@@ -144,81 +165,119 @@
 </head>
 
 <body>
+  <div class="statistics-grid">
+    <div class="stat-item">
+      <b><!-- LOCALISATION_CREATED_AT --></b>
+      <p><!-- BACKUP_TIME_PLACEHOLDER --></p>
+    </div>
+    <div class="stat-item">
+      <b><!-- LOCALISATION_BACKUP_DURATION --></b>
+      <p><!-- BACKUP_DURATION_PLACEHOLDER --></p>
+    </div>
+    <div class="stat-item">
+      <b><!-- LOCALISATION_TRIGGER_TYPE --></b>
+      <p><!-- TRIGGER_TYPE_PLACEHOLDER --></p>
+    </div>
+    <div class="stat-item">
+      <b><!-- LOCALISATION_TOTAL_APPS_COUNT --></b>
+      <p><!-- TOTAL_APPS_COUNT_PLACEHOLDER --></p>
+    </div>
+    <div class="stat-item">
+      <b><!-- LOCALISATION_USER_APPS_COUNT --></b>
+      <p><!-- USER_APPS_COUNT_PLACEHOLDER --></p>
+    </div>
+    <div class="stat-item">
+      <b><!-- LOCALISATION_SYSTEM_APPS_COUNT --></b>
+      <p><!-- SYSTEM_APPS_COUNT_PLACEHOLDER --></p>
+    </div>
+    <div class="stat-item">
+      <b><!-- LOCALISATION_ENABLED_APPS_COUNT --></b>
+      <p><!-- ENABLED_APPS_COUNT_PLACEHOLDER --></p>
+    </div>
+    <div class="stat-item">
+      <b><!-- LOCALISATION_DISABLED_APPS_COUNT --></b>
+      <p><!-- DISABLED_APPS_COUNT_PLACEHOLDER --></p>
+    </div>
+    <div class="stat-item" id="installed-apps-count" style="display: none;">
+      <b><!-- LOCALISATION_INSTALLED_APPS_COUNT --></b>
+      <p></p>
+    </div>
+    <div class="stat-item" id="uninstalled-apps-count" style="display: none;">
+      <b><!-- LOCALISATION_UNINSTALLED_APPS_COUNT --></b>
+      <p>/p>
+    </div>
+  </div>
   <div class="controls-container">
     <div class="controls">
-      <input type="text" id="search-input" placeholder="Search by app name or package name...">
+      <input type="text" id="search-input" placeholder="<!-- LOCALISATION_SEARCH_PLACEHOLDER -->">
       <span class="clear-button" onclick="clearSearch()">✖</span>
     </div>
     <div class="controls">
-      <button onclick="toggleSortModal()">Sort Options</button>
-      <button onclick="toggleFilterModal()">Filter Options</button>
+      <button onclick="toggleSortModal()"><!-- LOCALISATION_SORT_OPTIONS --></button>
+      <button onclick="toggleFilterModal()"><!-- LOCALISATION_FILTER_OPTIONS --></button>
     </div>
   </div>
   <div class="app-list" id="app-list">
     <!-- APP_ITEMS_PLACEHOLDER -->
   </div>
   <div id="no-items-placeholder" class="placeholder" style="display:none;">
-    No apps match the current filters.
-  </div>
-  <div class="backup-time">
-    Backup created on: <span id="backup-time">
-      <!-- BACKUP_TIME_PLACEHOLDER -->
-    </span>
+    <!-- LOCALISATION_NO_ITEMS_PLACEHOLDER -->
   </div>
 
   <!-- Sort Modal -->
   <div class="sort-modal" id="sort-modal">
     <div class="modal-content">
-      <h3>Sorting</h3>
+      <h3><!-- LOCALISATION_SORTING --></h3>
       <label>
-        <input type="radio" name="sort" value="default" onclick="sortBy('default')" checked> By default
+        <input type="radio" name="sort" value="default" onclick="sortBy('default')" checked> <!-- LOCALISATION_SORT_BY_DEFAULT -->
       </label>
       <label>
-        <input type="radio" name="sort" value="installTime" onclick="sortBy('installTime')"> By install time
+        <input type="radio" name="sort" value="installTime" onclick="sortBy('installTime')"> <!-- LOCALISATION_SORT_BY_INSTALL_TIME -->
       </label>
       <label>
-        <input type="radio" name="sort" value="updateTime" onclick="sortBy('updateTime')"> By update time
+        <input type="radio" name="sort" value="updateTime" onclick="sortBy('updateTime')"> <!-- LOCALISATION_SORT_BY_UPDATE_TIME -->
       </label>
       <label>
-        <input type="radio" name="sort" value="appName" onclick="sortBy('appName')"> By app name
+        <input type="radio" name="sort" value="appName" onclick="sortBy('appName')"> <!-- LOCALISATION_SORT_BY_APP_NAME -->
       </label>
       <label>
-        <input type="radio" name="sort" value="packageName" onclick="sortBy('packageName')"> By package name
+        <input type="radio" name="sort" value="packageName" onclick="sortBy('packageName')"> <!-- LOCALISATION_SORT_BY_PACKAGE_NAME -->
       </label>
+      <br/>
       <div>
-        <h3>Order</h3>
+        <h3><!-- LOCALISATION_ORDER --></h3>
         <label>
-          <input type="radio" name="sortOrder" value="asc" onclick="setSortOrder('asc')" checked> Ascending
+          <input type="radio" name="sortOrder" value="asc" onclick="setSortOrder('asc')" checked> <!-- LOCALISATION_ORDER_ASCENDING -->
         </label>
         <label>
-          <input type="radio" name="sortOrder" value="desc" onclick="setSortOrder('desc')"> Descending
+          <input type="radio" name="sortOrder" value="desc" onclick="setSortOrder('desc')"> <!-- LOCALISATION_ORDER_DESCENDING -->
         </label>
       </div>
-      <button onclick="toggleSortModal()">Close</button>
+      <button onclick="toggleSortModal()"><!-- LOCALISATION_CLOSE_BUTTON --></button>
     </div>
   </div>
 
   <!-- Filter Modal -->
   <div class="filter-modal" id="filter-modal">
     <div class="modal-content">
-      <h3>Apps Filtering</h3>
+      <h3><!-- LOCALISATION_APPS_FILTERING --></h3>
       <label>
-        <input type="checkbox" id="filter-user-apps" checked> Include user apps
+        <input type="checkbox" id="filter-user-apps" checked> <!-- LOCALISATION_INCLUDE_USER_APPS -->
       </label>
       <label>
-        <input type="checkbox" id="filter-system-apps" checked> Include system apps
+        <input type="checkbox" id="filter-system-apps" checked> <!-- LOCALISATION_INCLUDE_SYSTEM_APPS -->
       </label>
       <label>
-        <input type="checkbox" id="filter-enabled-apps" checked> Include enabled apps
+        <input type="checkbox" id="filter-enabled-apps" checked> <!-- LOCALISATION_INCLUDE_ENABLED_APPS -->
       </label>
       <label>
-        <input type="checkbox" id="filter-disabled-apps" checked> Include disabled apps
+        <input type="checkbox" id="filter-disabled-apps" checked> <!-- LOCALISATION_INCLUDE_DISABLED_APPS -->
       </label>
       <label style="display: none;">
-        <input type="checkbox" id="filter-installed-apps" checked> Include installed apps
+        <input type="checkbox" id="filter-installed-apps" checked> <!-- LOCALISATION_INCLUDE_INSTALLED_APPS -->
       </label>
-      <button onclick="applyFilters()">Apply Filters</button>
-      <button onclick="toggleFilterModal()">Close</button>
+      <button onclick="applyFilters()"><!-- LOCALISATION_APPLY_FILTERS_BUTTON --></button>
+      <button onclick="toggleFilterModal()"><!-- LOCALISATION_CLOSE_BUTTON --></button>
     </div>
   </div>
 
@@ -309,10 +368,9 @@
 
         let isVisible = (showUserApp || showSystemApp) && (showEnabledApp || showDisabledApp);
         if (isVisible && !includeInstalledApps) {
-          const packageName = item.dataset.packageName;
-          if (installedApps.includes(packageName)) {
+          if (installedApps.includes(item.dataset.packageName)) {
             isVisible = false;
-           }
+          }
         }
 
         if (isVisible) {
@@ -360,6 +418,28 @@
       const filter = document.getElementById('filter-installed-apps');
       filter.parentNode.style.display = '';
       installedApps = apps;
+
+      let installedAppsCount = 0;
+
+      appItems.forEach(item => {
+        if (installedApps.includes(item.dataset.packageName)) {
+          installedAppsCount++;
+        }
+      });
+
+      const uninstalledAppsCount = appItems.length - installedAppsCount;
+
+      const installedItem = document.querySelector("#installed-apps-count p");
+      const uninstalledItem = document.querySelector("#uninstalled-apps-count p");
+
+      if (installedItem) {
+        installedItem.parentNode.style.display = '';
+        installedItem.textContent = installedAppsCount;
+      }
+      if (uninstalledItem) {
+        uninstalledItem.parentNode.style.display = '';
+        uninstalledItem.textContent = uninstalledAppsCount;
+      }
     }
   </script>
 </body>
