@@ -64,6 +64,20 @@
         7. Configure any additional parameters required for your macro.\n
         8. Save the macro by pressing the save icon. You can now run this macro to automate backups.
     </string>
+    <string name="intent_integration">How does Intent integration work?</string>
+    <string name="intent_integration_description_1">%1$s provides a quick backup API. You can trigger %1$s by sending Intent Broadcasts. All values are clickable to copy to clipboard.</string>
+    <string name="intent_integration_description_2">You can use ADB or automation tools like MacroDroid to broadcast intents to trigger hidings. Here are some examples.</string>
+    <string name="intent_integration_example">
+        Example to trigger the backup by Tasker:\n
+        1. Open Tasker and create a new profile.\n
+        2. Add a new task and press + to add an Action.\n
+        3. Choose \'System\' &gt; \'Send Intent\'.\n
+        4. Set the following parameters:\n
+            - Action: &quot;%1$s&quot;\n
+            - Package: &quot;%2$s&quot;\n
+            - Target: &quot;Broadcast Receiver&quot;\n
+        5. Press back to save the task and activate the profile.
+    </string>
     <string name="loading">Loading…</string>
     <string name="error_message">Error: %1$s</string>
     <string name="wrong_file">Please select a backup file created by this application</string>
@@ -104,6 +118,7 @@
     <string name="installer">Install source</string>
     <string name="links_title">Links</string>
     <string name="links_title_details">is working only for published apps</string>
+    <string name="text_copied">Text copied to clipboard</string>
     <string name="created_at">Created at</string>
     <string name="trigger_type">Trigger type</string>
     <string name="total_apps_count">Total apps</string>

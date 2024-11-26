@@ -13,6 +13,7 @@ Whether you want to safeguard your list of favorite apps or prepare for a device
 * Quickly create backup lists of installed apps with ease, including details such as: installation date, version number, package name, app icon and more.
 * View your backup lists from any device with an easy to use HTML file including the ability to sort and filter.
 * Seamlessly integrate with Tasker, Automate, MacroDroid, and any other apps that support Tasker Plugin, allowing you to automate your backup schedule.
+* Trigger backups via Intent Broadcasts, enabling automation with tools like Tasker, ADB, and MacroDroid for even more flexibility.
 * Does not need root and zero permissions are required.
 * Also includes an easy to click widget, notification bar progress updates, and more.
 
