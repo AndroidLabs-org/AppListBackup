@@ -1,0 +1,7 @@
+- Fixed small bugs and improved usability.
+- Extended supported Android versions from 9 to 15.
+- Prepared the app for future localization support.
+- Added install source (e.g., Play Store, F-Droid, etc.).
+- App is now showing more statistics and useful data for new backups.
+- Added a filter to hide installed apps.
+- Improved in-app FAQ.
