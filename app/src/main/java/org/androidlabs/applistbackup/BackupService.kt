@@ -285,6 +285,7 @@ class BackupService : Service() {
                         <strong>${getString(R.string.system_title)}:</strong> ${isSystem}<br>
                         <strong>${getString(R.string.enabled_title)}:</strong> ${appInfo.enabled}<br>
                         <strong>${getString(R.string.version_title)}:</strong> ${packageInfo.versionName} (${packageInfo.longVersionCode})<br>
+                        <strong>${getString(R.string.target_sdk_version_title)}:</strong> ${appInfo.targetSdkVersion}<br>
                         <strong>${getString(R.string.min_sdk_version_title)}:</strong> ${appInfo.minSdkVersion}<br>
                         <strong>${getString(R.string.installed_at_title)}:</strong> ${outputDateFormat.format(Date(packageInfo.firstInstallTime))}<br>
                         <strong>${getString(R.string.updated_at_title)}:</strong> ${outputDateFormat.format(Date(packageInfo.lastUpdateTime))}<br>
