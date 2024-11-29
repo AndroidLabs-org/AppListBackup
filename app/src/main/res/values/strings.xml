@@ -112,6 +112,7 @@
     <string name="system_title">System</string>
     <string name="enabled_title">Enabled</string>
     <string name="version_title">Version</string>
+    <string name="target_sdk_version_title">Target SDK version</string>
     <string name="min_sdk_version_title">Min SDK version</string>
     <string name="installed_at_title">Installed at</string>
     <string name="updated_at_title">Last update at</string>
