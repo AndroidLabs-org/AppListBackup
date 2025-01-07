@@ -307,7 +307,7 @@ class BackupService : Service() {
                     installerFilterItems.append(
                         """
                         <label>
-                            <input type="checkbox" id="$filterId" checked> ${getString(R.string.include_installed_from)} $installer
+                            <input type="checkbox" id="$filterId" checked> ${getString(R.string.installed_from)} $installer
                         </label>
                         """.trimIndent()
                     )
@@ -370,11 +370,11 @@ class BackupService : Service() {
                     "LOCALISATION_ORDER_DESCENDING" to getString(R.string.order_descending),
                     "LOCALISATION_CLOSE_BUTTON" to getString(R.string.close),
                     "LOCALISATION_APPS_FILTERING" to getString(R.string.apps_filtering),
-                    "LOCALISATION_INCLUDE_USER_APPS" to getString(R.string.include_user_apps),
-                    "LOCALISATION_INCLUDE_SYSTEM_APPS" to getString(R.string.include_system_apps),
-                    "LOCALISATION_INCLUDE_ENABLED_APPS" to getString(R.string.include_enabled_apps),
-                    "LOCALISATION_INCLUDE_DISABLED_APPS" to getString(R.string.include_disabled_apps),
-                    "LOCALISATION_INCLUDE_INSTALLED_APPS" to getString(R.string.include_installed_apps),
+                    "LOCALISATION_USER_APPS" to getString(R.string.user_apps),
+                    "LOCALISATION_SYSTEM_APPS" to getString(R.string.system_apps),
+                    "LOCALISATION_ENABLED_APPS" to getString(R.string.enabled_apps),
+                    "LOCALISATION_DISABLED_APPS" to getString(R.string.disabled_apps),
+                    "LOCALISATION_INSTALLED_APPS" to getString(R.string.installed_apps),
                     "LOCALISATION_APPLY_FILTERS_BUTTON" to getString(R.string.apply_filters_button),
                     "LOCALISATION_BACKUP_DURATION" to getString(R.string.backup_duration),
                     "LOCALISATION_SORT_BY_INSTALLER" to getString(R.string.sort_by_installer_name),
