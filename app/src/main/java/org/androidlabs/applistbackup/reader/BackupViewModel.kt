@@ -11,6 +11,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import org.androidlabs.applistbackup.BackupFile
 import org.androidlabs.applistbackup.BackupService
+import org.androidlabs.applistbackup.settings.Settings
 import java.io.File
 
 class BackupViewModel(application: Application) : AndroidViewModel(application) {
@@ -40,7 +41,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun initializeFileObserver() {
-        val backupsUri = BackupService.getBackupUri(getApplication()) ?: return
+        val backupsUri = Settings.getBackupUri(getApplication()) ?: return
 
         val backupFolderPath =
             DocumentFile.fromTreeUri(getApplication(), backupsUri)?.uri?.path ?: return

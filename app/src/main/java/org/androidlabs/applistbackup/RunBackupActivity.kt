@@ -9,7 +9,7 @@ class RunBackupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val intent: Intent = Intent(
+        val intent = Intent(
             this,
             BackupService::class.java
         )

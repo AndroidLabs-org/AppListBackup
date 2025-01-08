@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.R
+import org.androidlabs.applistbackup.settings.Settings
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
 
 class InstructionsActivity : ComponentActivity() {
@@ -36,7 +37,7 @@ class InstructionsActivity : ComponentActivity() {
         val appName =
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0))
                 .toString()
-        val backupPath = BackupService.getReadablePathFromUri(BackupService.getBackupUri(this))
+        val backupPath = BackupService.getReadablePathFromUri(Settings.getBackupUri(this))
 
         val instructions = listOf(
             Instruction(

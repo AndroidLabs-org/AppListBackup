@@ -24,6 +24,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.documentfile.provider.DocumentFile
 import org.androidlabs.applistbackup.reader.BackupReaderActivity
+import org.androidlabs.applistbackup.settings.Settings
 import java.io.ByteArrayOutputStream
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -48,24 +49,8 @@ class BackupService : Service() {
 
         private var onCompleteCallback: ((Uri) -> Unit)? = null
 
-        private const val PREFERENCES_FILE: String = "preferences"
-        private const val KEY_BACKUP_URI: String = "backup_uri"
-
-        fun setBackupUri(context: Context, uri: Uri) {
-            val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
-            val editor = sharedPreferences.edit()
-            editor.putString(KEY_BACKUP_URI, uri.toString())
-            editor.apply()
-        }
-
-        fun getBackupUri(context: Context): Uri? {
-            val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
-            val uriString = sharedPreferences.getString(KEY_BACKUP_URI, null)
-            return if (uriString != null) Uri.parse(uriString) else null
-        }
-
         fun getBackupFolder(context: Context): DocumentFile? {
-            val backupsUri = getBackupUri(context) ?: return null
+            val backupsUri = Settings.getBackupUri(context) ?: return null
             return DocumentFile.fromTreeUri(context, backupsUri)
         }
 
@@ -98,7 +83,7 @@ class BackupService : Service() {
         }
 
         fun getLastCreatedFileUri(context: Context): Uri? {
-            val backupsUri = getBackupUri(context) ?: return null
+            val backupsUri = Settings.getBackupUri(context) ?: return null
             val backupsDir = DocumentFile.fromTreeUri(context, backupsUri)
 
             if (backupsDir != null && backupsDir.exists() && backupsDir.isDirectory) {
@@ -118,7 +103,7 @@ class BackupService : Service() {
         }
 
         fun getBackupFiles(context: Context): List<BackupFile> {
-            val backupsUri = getBackupUri(context) ?: return emptyList()
+            val backupsUri = Settings.getBackupUri(context) ?: return emptyList()
             val backupsDir = DocumentFile.fromTreeUri(context, backupsUri) ?: return emptyList()
             val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
             val titleFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
