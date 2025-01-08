@@ -93,10 +93,10 @@
     <string name="notifications_disabled">Notifications are disabled.\nEnable notifications for correct functionality.</string>
     <string name="notifications_enable">Enable Notifications</string>
     <string name="view_backup">View backup</string>
-    <string name="destination_not_set">Please select a backup folder\nto begin using the app.</string>
-    <string name="destination_set">Choose backup destination</string>
-    <string name="destination_change">Change backup destination</string>
-    <string name="destination_current">Current: %1$s</string>
+    <string name="destination_not_set">Please select a backup folder\nin Settings to begin using the app.</string>
+    <string name="destination">Backup destination</string>
+    <string name="choose">Choose</string>
+    <string name="change">Change</string>
     <string name="faq">FAQ</string>
     <string name="version">Version: %1$s</string>
     <string name="backup_started">Backup started</string>
@@ -159,4 +159,5 @@
     <string name="show_less">Show less</string>
     <string name="app_states">App states</string>
     <string name="backup_apps">Backup apps</string>
+    <string name="settings">Settings</string>
 </resources>

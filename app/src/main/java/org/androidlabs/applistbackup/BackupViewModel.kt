@@ -9,8 +9,9 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.androidlabs.applistbackup.settings.Settings
 
-class MainActivityViewModel(application: Application) : AndroidViewModel(application) {
+class BackupViewModel(application: Application) : AndroidViewModel(application) {
 
     private val notificationManagerCompat = NotificationManagerCompat.from(application)
 
@@ -30,18 +31,11 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun loadBackupUri(): Uri? {
-        return BackupService.getBackupUri(getApplication())
+        return Settings.getBackupUri(getApplication())
     }
 
     fun refreshBackupUri() {
         _backupUri.postValue(loadBackupUri())
-    }
-
-    fun saveBackupUri(uri: Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
-            BackupService.setBackupUri(getApplication(), uri)
-            _backupUri.postValue(uri)
-        }
     }
 
     fun setLoading(value: Boolean) {
