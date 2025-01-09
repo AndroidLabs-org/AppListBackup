@@ -2,6 +2,7 @@ package org.androidlabs.applistbackup.settings
 
 import android.app.Service.MODE_PRIVATE
 import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
 
 object Settings {
@@ -19,5 +20,27 @@ object Settings {
         val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
         val uriString = sharedPreferences.getString(KEY_BACKUP_URI, null)
         return if (uriString != null) Uri.parse(uriString) else null
+    }
+
+    fun observeBackupUri(context: Context, onChange: (Uri?) -> Unit): SharedPreferences.OnSharedPreferenceChangeListener {
+        val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_BACKUP_URI) {
+                val newUri = getBackupUri(context)
+                onChange(newUri)
+            }
+        }
+
+        sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+
+        return listener
+    }
+
+    fun unregisterListener(
+        context: Context, listener:
+    SharedPreferences.OnSharedPreferenceChangeListener
+    ) {
+        context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
+            .unregisterOnSharedPreferenceChangeListener(listener)
     }
 }

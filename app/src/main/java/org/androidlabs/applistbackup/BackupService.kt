@@ -23,7 +23,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.documentfile.provider.DocumentFile
-import org.androidlabs.applistbackup.reader.BackupReaderActivity
+import org.androidlabs.applistbackup.reader.BackupReaderFragment
 import org.androidlabs.applistbackup.settings.Settings
 import java.io.ByteArrayOutputStream
 import java.net.URLDecoder
@@ -82,38 +82,39 @@ class BackupService : Service() {
             }
         }
 
+        private fun getRawBackupFiles(context: Context): List<DocumentFile> {
+            val backupsUri = Settings.getBackupUri(context) ?: return emptyList()
+            val backupsDir = DocumentFile.fromTreeUri(context, backupsUri) ?: return emptyList()
+            if (backupsDir.exists() && backupsDir.isDirectory) {
+                val files = backupsDir.listFiles().filter { file ->
+                    file.name?.let { name ->
+                        name.endsWith(".html") && name.startsWith("app-list-backup-")
+                    } == true
+                }
+                return files
+            }
+            return emptyList()
+        }
+
         fun getLastCreatedFileUri(context: Context): Uri? {
-            val backupsUri = Settings.getBackupUri(context) ?: return null
-            val backupsDir = DocumentFile.fromTreeUri(context, backupsUri)
+            val files = getRawBackupFiles(context)
+            if (files.isNotEmpty()) {
+                val sortedFiles = files.sortedByDescending { it.lastModified() }
 
-            if (backupsDir != null && backupsDir.exists() && backupsDir.isDirectory) {
-                val files = backupsDir.listFiles()
+                val lastCreatedFile = sortedFiles.firstOrNull()
 
-                if (files.isNotEmpty()) {
-                    val sortedFiles = files.sortedByDescending { it.lastModified() }
-
-                    val lastCreatedFile = sortedFiles.firstOrNull()
-
-                    if (lastCreatedFile != null) {
-                        return lastCreatedFile.uri
-                    }
+                if (lastCreatedFile != null) {
+                    return lastCreatedFile.uri
                 }
             }
             return null
         }
 
         fun getBackupFiles(context: Context): List<BackupFile> {
-            val backupsUri = Settings.getBackupUri(context) ?: return emptyList()
-            val backupsDir = DocumentFile.fromTreeUri(context, backupsUri) ?: return emptyList()
             val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
             val titleFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
 
-            return backupsDir.listFiles()
-                .filter { file ->
-                    file.name?.let { name ->
-                        name.endsWith(".html") && name.startsWith("app-list-backup-")
-                    } == true
-                }
+            return getRawBackupFiles(context)
                 .map { file ->
                     val name = file.name ?: return@map null
                     val dateString = name.removePrefix("app-list-backup-").removeSuffix(".html")
@@ -386,13 +387,17 @@ class BackupService : Service() {
                     throw Error(getString(R.string.file_create_failed))
                 }
 
-                val openFileIntent = Intent(this, BackupReaderActivity::class.java).apply {
+                val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
                     putExtra("uri", newFile.uri.toString())
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 }
 
-                val pendingIntent = PendingIntent.getActivity(this, 0, openFileIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                Log.d(tag, "push uri - ${newFile.uri}")
+
+                val notificationId = getNotificationId()
+
+                val pendingIntent = PendingIntent.getActivity(this, notificationId, mainActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
                 val successfulTitle = getString(R.string.backup_done_title, appsCount.toString(), type)
                 val successfulText = getString(R.string.backup_done_text, userAppsCount.toString(), systemAppsCount.toString())
@@ -405,7 +410,7 @@ class BackupService : Service() {
                     .build()
 
                 val manager = getSystemService(NotificationManager::class.java)
-                manager.notify(getNotificationId(), endNotification)
+                manager.notify(notificationId, endNotification)
 
                 if (onCompleteCallback != null) {
                     onCompleteCallback?.let { it(newFile.uri) }
