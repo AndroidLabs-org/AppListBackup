@@ -85,14 +85,13 @@
     <string name="back">Back</string>
     <string name="browse">Browse</string>
     <string name="no_backup_found">No backup found</string>
-    <string name="run_backup">Run backup</string>
     <string name="tasker_command">Backup installed apps.</string>
     <string name="terms">Terms and Conditions</string>
     <string name="privacy">Privacy Policy</string>
     <string name="icon">Icon</string>
     <string name="notifications_disabled">Notifications are disabled.\nEnable notifications for correct functionality.</string>
     <string name="notifications_enable">Enable Notifications</string>
-    <string name="view_backup">View backup</string>
+    <string name="view_backups">View backups</string>
     <string name="destination_not_set">Please select a backup folder\nin Settings to begin using the app.</string>
     <string name="destination">Backup destination</string>
     <string name="choose">Choose</string>
@@ -160,4 +159,6 @@
     <string name="app_states">App states</string>
     <string name="backup_apps">Backup apps</string>
     <string name="settings">Settings</string>
+    <string name="backup_now">Backup now</string>
+    <string name="last_backup">Last backup</string>
 </resources>

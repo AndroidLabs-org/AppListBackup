@@ -1,6 +1,7 @@
 package org.androidlabs.applistbackup.reader
 
 import android.app.Application
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -24,6 +25,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     private val _installedPackages = MutableLiveData<List<String>>(emptyList())
     val installedPackages: LiveData<List<String>> = _installedPackages;
 
+    private var backupUriListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var fileObserver: FileObserver? = null
 
     init {
@@ -32,12 +34,16 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
         val installedPackages = packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
         val packageNames = installedPackages.map { it.packageName }
         _installedPackages.value = packageNames
+
+        backupUriListener = Settings.observeBackupUri(getApplication(), {
+            initializeFileObserver()
+            updateBackupFiles()
+            _uri.value = BackupService.getLastCreatedFileUri(getApplication())
+        })
     }
 
     fun setUri(newUri: Uri) {
         _uri.value = newUri
-        initializeFileObserver()
-        updateBackupFiles()
     }
 
     private fun initializeFileObserver() {
@@ -81,5 +87,8 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     override fun onCleared() {
         super.onCleared()
         fileObserver?.stopWatching()
+        backupUriListener?.let {
+            Settings.unregisterListener(getApplication(), it)
+        }
     }
 }
