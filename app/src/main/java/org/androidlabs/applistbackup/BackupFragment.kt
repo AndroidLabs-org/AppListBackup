@@ -139,7 +139,7 @@ private fun ActivityState(
                     Spacer(Modifier.height(8.dp))
 
                     Text(
-                        text = "${stringResource(R.string.last_at)}: ${backupFiles.value.first().title}",
+                        text = "${stringResource(R.string.last_backup)}: ${backupFiles.value.first().title}",
                         fontSize = 12.sp
                     )
                 }
