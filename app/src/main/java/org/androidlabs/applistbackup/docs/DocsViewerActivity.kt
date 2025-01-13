@@ -60,7 +60,10 @@ fun WebViewComposable(filename: String, modifier: Modifier = Modifier) {
     AndroidView(factory = {
         WebView(it).apply {
             webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest?
+                ): Boolean {
                     request?.url?.let { url ->
                         val intent = Intent(Intent.ACTION_VIEW, url)
                         context.startActivity(intent)

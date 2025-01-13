@@ -1,14 +1,11 @@
-package org.androidlabs.applistbackup
+package org.androidlabs.applistbackup.backupnow
 
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -36,18 +33,12 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import org.androidlabs.applistbackup.BackupService
+import org.androidlabs.applistbackup.R
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
 
 class BackupFragment : Fragment() {
     private val viewModel: BackupViewModel by viewModels()
-    private lateinit var openFolderLauncher: ActivityResultLauncher<Intent>
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        openFolderLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            Log.d("SettingsFragment", "Open folder result: $result")
-        }
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
