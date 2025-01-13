@@ -23,7 +23,7 @@ fun SettingsRow(
     title: String,
     subtitle: String?,
     iconView: @Composable () -> Unit,
-    rightView: @Composable () -> Unit,
+    rightView: (@Composable () -> Unit)? = null,
     footerView: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
@@ -55,9 +55,11 @@ fun SettingsRow(
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            rightView?.let {
+                Spacer(modifier = Modifier.width(8.dp))
 
-            rightView()
+                it()
+            }
         }
 
         footerView?.let {

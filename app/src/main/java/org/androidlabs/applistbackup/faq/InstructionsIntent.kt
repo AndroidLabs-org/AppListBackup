@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.androidlabs.applistbackup.R
+import org.androidlabs.applistbackup.data.BackupFormat
 
 @Composable
 fun InstructionsIntent(
@@ -71,21 +72,36 @@ fun InstructionsIntent(
                 ValueRow(title = "Package:", value = packageName)
 
                 ValueRow(title = "Action:", value = action)
+
+                Text(text = stringResource(R.string.optionally))
+
+                BackupFormat.entries.forEach {
+                    ValueRow(title = "Extra (${it.value}):", value = "format:${it.value}")
+                }
             }
 
             Text(text = stringResource(R.string.intent_integration_description_2))
 
             BlockView(title = "Shell (ADB)") {
                 ValueRow(value = "adb shell am broadcast -a $action -n $packageName/.BackupReceiver")
+
+                BackupFormat.entries.forEach {
+                    ValueRow(title = "${stringResource(R.string.optionally)} (${it.value}):", value = "--es format ${it.value}")
+                }
             }
 
-            Text(text = stringResource(R.string.intent_integration_example, action, packageName).split("\n").joinToString("\n") { line ->
-                var newLine = line.trim()
-                if (newLine.startsWith("-")) {
-                    newLine = "    $newLine";
-                }
-                newLine
-            })
+            Text(
+                text = stringResource(
+                    R.string.intent_integration_example,
+                    action,
+                    packageName
+                ).split("\n").joinToString("\n") { line ->
+                    var newLine = line.trim()
+                    if (newLine.startsWith("-")) {
+                        newLine = "    $newLine"
+                    }
+                    newLine
+                })
         }
     }
 }
@@ -106,7 +122,8 @@ fun BlockView(
             modifier = Modifier.padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(title,
+            Text(
+                title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold
             )

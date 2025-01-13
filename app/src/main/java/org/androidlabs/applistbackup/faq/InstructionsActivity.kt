@@ -106,7 +106,11 @@ class InstructionsActivity : ComponentActivity() {
 }
 
 @Composable
-fun BackupInstructionsScreen(instructions: List<Instruction>, appName: String, modifier: Modifier = Modifier) {
+fun BackupInstructionsScreen(
+    instructions: List<Instruction>,
+    appName: String,
+    modifier: Modifier = Modifier
+) {
     val scrollState = rememberScrollState()
     val expandedStates = remember { mutableStateMapOf<Int, Boolean>() }
 

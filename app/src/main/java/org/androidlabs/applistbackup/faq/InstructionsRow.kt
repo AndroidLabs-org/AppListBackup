@@ -18,7 +18,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.androidlabs.applistbackup.R
 
-data class Instruction(val title: String, var description: String, val boldDescription: Boolean = false, val details: String? = null)
+data class Instruction(
+    val title: String,
+    var description: String,
+    val boldDescription: Boolean = false,
+    val details: String? = null
+)
 
 @Composable
 fun InstructionRow(

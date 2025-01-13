@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat.getDrawable
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -54,6 +55,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import org.androidlabs.applistbackup.backupnow.BackupFragment
 import org.androidlabs.applistbackup.reader.BackupReaderFragment
 import org.androidlabs.applistbackup.settings.SettingsFragment
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
@@ -80,11 +82,16 @@ class MainActivity : FragmentActivity() {
                                 inputStream.copyTo(outputStream)
                             }
                         }
-                        val tempFileUri = FileProvider.getUriForFile(this, "$packageName.provider", tempFile)
+                        val tempFileUri =
+                            FileProvider.getUriForFile(this, "$packageName.provider", tempFile)
                         viewModel.setUri(tempFileUri)
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        Toast.makeText(this, getString(R.string.error_message, e.message), Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            this,
+                            getString(R.string.error_message, e.message),
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 } else {
                     Toast.makeText(
@@ -135,8 +142,11 @@ class MainActivity : FragmentActivity() {
 }
 
 private sealed class Screen(val route: String, val titleResId: Int) {
-    class WithDrawableIcon(route: String, val iconResId: Int, titleResId: Int) : Screen(route, titleResId)
-    class WithImageVector(route: String, val icon: ImageVector, titleResId: Int) : Screen(route, titleResId)
+    class WithDrawableIcon(route: String, val iconResId: Int, titleResId: Int) :
+        Screen(route, titleResId)
+
+    class WithImageVector(route: String, val icon: ImageVector, titleResId: Int) :
+        Screen(route, titleResId)
 
     companion object {
         val Backup = WithImageVector("backup", Icons.Default.Home, R.string.backup_now)
@@ -163,6 +173,7 @@ private fun BottomNavigationBar(navController: NavController) {
                             painter = painterResource(id = screen.iconResId),
                             contentDescription = stringResource(screen.titleResId)
                         )
+
                         is Screen.WithImageVector -> Icon(
                             imageVector = screen.icon,
                             contentDescription = stringResource(screen.titleResId)
@@ -229,7 +240,8 @@ private fun MainScreen(
                     ) {
                         Image(
                             painter = rememberDrawablePainter(
-                                drawable = LocalContext.current.getDrawable(
+                                drawable = getDrawable(
+                                    LocalContext.current,
                                     R.mipmap.ic_launcher
                                 )
                             ),
