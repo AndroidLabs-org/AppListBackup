@@ -130,7 +130,6 @@ class BackupService : Service() {
 
         fun getBackupFiles(context: Context): List<BackupFile> {
             val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
-            val titleFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
 
             return getRawBackupFiles(context)
                 .map { file ->
@@ -238,6 +237,7 @@ class BackupService : Service() {
                 val currentDate = Date()
                 val currentTime = dateFormat.format(currentDate)
                 val fileName = "$FILE_NAME_PREFIX$currentTime.${format.fileExtension()}"
+                val newFile = backupsDir.createFile(format.mimeType(), fileName)
                 val type =
                     getString(if (source != null && source == "tasker") R.string.automatic else R.string.manual)
 
@@ -260,7 +260,6 @@ class BackupService : Service() {
                     packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
                 val activeApps = packageManager.queryIntentActivities(mainIntent, 0)
                     .map { it.activityInfo.packageName }
-                var newFile: DocumentFile? = null
 
                 val apps: MutableList<BackupAppDetails> = mutableListOf()
 
@@ -473,10 +472,85 @@ class BackupService : Service() {
                             finalHtml = finalHtml.replace("<!-- $placeholder -->", value)
                         }
 
-                        newFile = backupsDir.createFile("text/html", fileName)
                         if (newFile != null) {
                             contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
                                 outputStream.write(finalHtml.toByteArray())
+                            }
+                        }
+                    }
+
+                    BackupFormat.CSV -> {
+                        val csvBuilder = StringBuilder()
+
+                        csvBuilder.apply {
+                            append("\"${getString(R.string.name_title)}\"")
+                            if (!isPackageExcluded) append(",\"${getString(R.string.package_title)}\"")
+                            if (!isSystemExcluded) append(",\"${getString(R.string.system_title)}\"")
+                            if (!isEnabledExcluded) append(",\"${getString(R.string.enabled_title)}\"")
+                            if (!isVersionExcluded) append(",\"${getString(R.string.version_title)}\"")
+                            if (!isTargetSDKExcluded) append(",\"${getString(R.string.target_sdk_version_title)}\"")
+                            if (!isMinSDKExcluded) append(",\"${getString(R.string.min_sdk_version_title)}\"")
+                            if (!isInstalledAtExcluded) append(",\"${getString(R.string.installed_at_title)}\"")
+                            if (!isUpdatedAtExcluded) append(",\"${getString(R.string.updated_at_title)}\"")
+                            if (!isInstallSourceExcluded) append(",\"${getString(R.string.installer)}\"")
+                            if (!isLinksExcluded) {
+                                append(",\"${getString(R.string.play_market_title)}\"")
+                                append(",\"${getString(R.string.f_droid_title)}\"")
+                            }
+                            appendLine()
+                        }
+
+                        apps.forEach { app ->
+                            csvBuilder.apply {
+                                append("\"${app.name.toString().replace("\"", "\"\"")}\"")
+                                if (!isPackageExcluded) append(",\"${app.packageName}\"")
+                                if (!isSystemExcluded) append(",\"${app.isSystem}\"")
+                                if (!isEnabledExcluded) append(",\"${app.isEnabled}\"")
+                                if (!isVersionExcluded) append(
+                                    ",\"${
+                                        app.versionName.replace(
+                                            "\"",
+                                            "\"\""
+                                        )
+                                    } (${app.versionCode})\""
+                                )
+                                if (!isTargetSDKExcluded) append(",\"${app.targetSdkVersion}\"")
+                                if (!isMinSDKExcluded) append(",\"${app.minSdkVersion}\"")
+                                if (!isInstalledAtExcluded) append(
+                                    ",\"${
+                                        outputDateFormat.format(
+                                            Date(app.firstInstallTime)
+                                        )
+                                    }\""
+                                )
+                                if (!isUpdatedAtExcluded) append(
+                                    ",\"${
+                                        outputDateFormat.format(
+                                            Date(
+                                                app.lastUpdateTime
+                                            )
+                                        )
+                                    }\""
+                                )
+                                if (!isInstallSourceExcluded) append(
+                                    ",\"${
+                                        app.installerName.replace(
+                                            "\"",
+                                            "\"\""
+                                        )
+                                    }\""
+                                )
+                                if (!isLinksExcluded) {
+                                    append(",\"https://play.google.com/store/apps/details?id=${app.packageName}\"")
+                                    append(",\"https://f-droid.org/packages/${app.packageName}\"")
+                                }
+                                appendLine()
+                            }
+                        }
+
+                        if (newFile != null) {
+                            contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
+                                outputStream.write(csvBuilder.toString().toByteArray())
                             }
                         }
                     }
@@ -485,17 +559,17 @@ class BackupService : Service() {
                         val markdownBuilder = StringBuilder()
 
                         markdownBuilder.apply {
-                            append("**Name")
-                            if (!isPackageExcluded) append(" | Package")
-                            if (!isSystemExcluded) append(" | System")
-                            if (!isEnabledExcluded) append(" | Enabled")
-                            if (!isVersionExcluded) append(" | Version")
-                            if (!isTargetSDKExcluded) append(" | Target SDK")
-                            if (!isMinSDKExcluded) append(" | Min SDK")
-                            if (!isInstalledAtExcluded) append(" | Installed At")
-                            if (!isUpdatedAtExcluded) append(" | Updated At")
-                            if (!isInstallSourceExcluded) append(" | Installer")
-                            if (!isLinksExcluded) append(" | Links")
+                            append("**${getString(R.string.name_title)}")
+                            if (!isPackageExcluded) append(" | ${getString(R.string.package_title)}")
+                            if (!isSystemExcluded) append(" | ${getString(R.string.system_title)}")
+                            if (!isEnabledExcluded) append(" | ${getString(R.string.enabled_title)}")
+                            if (!isVersionExcluded) append(" | ${getString(R.string.version_title)}")
+                            if (!isTargetSDKExcluded) append(" | ${getString(R.string.target_sdk_version_title)}")
+                            if (!isMinSDKExcluded) append(" | ${getString(R.string.min_sdk_version_title)}")
+                            if (!isInstalledAtExcluded) append(" | ${getString(R.string.installed_at_title)}")
+                            if (!isUpdatedAtExcluded) append(" | ${getString(R.string.updated_at_title)}")
+                            if (!isInstallSourceExcluded) append(" | ${getString(R.string.installer)}")
+                            if (!isLinksExcluded) append(" | ${getString(R.string.links_title)}")
                             append("**")
                             appendLine()
                             appendLine()
@@ -534,7 +608,6 @@ class BackupService : Service() {
                             }
                         }
 
-                        newFile = backupsDir.createFile("text/markdown", fileName)
                         if (newFile != null) {
                             contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
                                 outputStream.write(markdownBuilder.toString().toByteArray())

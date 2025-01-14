@@ -23,7 +23,7 @@
         3. Choose the \'App\' category and select \'Launch App\'.\n
         4. Press and hold \'%1$s\'.\n
         5. Choose \'RunBackupActivity\'.\n
-        6. In the Data field, enter \'%%format=HTML\' or \'%%format=Markdown\' for your preferred format (System format will be used if not specified).\n
+        6. In the Data field, enter \'%%format=HTML\', \'%%format=CSV\', or \'%%format=Markdown\' for your preferred format (System format will be used if not specified).\n
         7. Press the back button on your device or use the back navigation button on the top-left corner of the screen to return to the main Action Edit screen.\n
         8. Configure any additional parameters of the task as needed.\n
         9. Save and activate the profile to automate backups.
@@ -80,7 +80,7 @@
             - Action: &quot;%1$s&quot;\n
             - Package: &quot;%2$s&quot;\n
             - Target: &quot;Broadcast Receiver&quot;\n
-            - Optionally, add Extra \'format:HTML\' or \'format:Markdown\' for your preferred format\n
+            - Optionally, add Extra \'format:HTML\', \'format:CSV\', or \'format:Markdown\'  for your preferred format\n
         5. Press back to save the task and activate the profile.
     </string>
     <string name="optionally">Optionally</string>
@@ -113,6 +113,7 @@
     <string name="manual">Manual</string>
     <string name="backup_done_title">Backup done for %1$s apps (%2$s)</string>
     <string name="backup_done_text">%1$s users apps and %2$s system apps.</string>
+    <string name="name_title">Name</string>
     <string name="package_title">Package</string>
     <string name="system_title">System</string>
     <string name="enabled_title">Enabled</string>
@@ -124,6 +125,8 @@
     <string name="installer">Install source</string>
     <string name="links_title">Links</string>
     <string name="links_title_details">is working only for published apps</string>
+    <string name="play_market_title">Play Market</string>
+    <string name="f_droid_title">F-Droid</string>
     <string name="text_copied">Text copied to clipboard</string>
     <string name="created_at">Created at</string>
     <string name="trigger_type">Trigger type</string>
