@@ -149,7 +149,8 @@ class TaskerPlugin : Activity(), TaskerPluginConfig<BackupFormatInput> {
 
         formatGroup.setOnCheckedChangeListener { _, checkedId ->
             val selectedFormat =
-                formatButtonIds.entries.find { it.value == checkedId }?.key ?: TaskerBackupFormat.System
+                formatButtonIds.entries.find { it.value == checkedId }?.key
+                    ?: TaskerBackupFormat.System
             currentInput = TaskerInput(BackupFormatInput(format = selectedFormat.value))
         }
     }

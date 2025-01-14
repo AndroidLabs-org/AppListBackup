@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.MainActivityViewModel
 import org.androidlabs.applistbackup.R
+import org.androidlabs.applistbackup.data.BackupFormat
 
 class BackupReaderFragment(
     private val mainActivityViewModel: MainActivityViewModel
@@ -116,7 +117,7 @@ private fun DisplayHtmlContent(
 
     val extension = uri.toString().substringAfterLast('.', "").lowercase()
 
-    val isHtml = extension.contains("htm")
+    val format = BackupFormat.fromExtension(extension)
 
     if (uri != null) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -155,18 +156,29 @@ private fun DisplayHtmlContent(
                 }
             }
 
-            if (isHtml) {
-                BackupWebView(
-                    modifier = Modifier.weight(1f),
-                    uri = uri,
-                    installedPackages = installedPackages
-                )
-            } else {
-                BackupMarkdownView(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(16.dp), uri = uri
-                )
+            when (format) {
+                BackupFormat.HTML -> {
+                    BackupWebView(
+                        modifier = Modifier.weight(1f),
+                        uri = uri,
+                        installedPackages = installedPackages
+                    )
+                }
+
+                BackupFormat.CSV -> {
+                    BackupCsvView(
+                        modifier = Modifier.weight(1f),
+                        uri = uri
+                    )
+                }
+
+                BackupFormat.Markdown -> {
+                    BackupMarkdownView(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(16.dp), uri = uri
+                    )
+                }
             }
         }
     } else {

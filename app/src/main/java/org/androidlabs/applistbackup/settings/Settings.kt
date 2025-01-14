@@ -59,7 +59,7 @@ object Settings {
         context: Context,
         onChangeBackupUri: () -> Unit,
     ): SharedPreferences.OnSharedPreferenceChangeListener {
-        return observeKeys(context, listOf(KEY_BACKUP_URI), { key ->
+        return observeKeys(context, listOf(KEY_BACKUP_URI), {
             onChangeBackupUri()
         })
     }

@@ -86,7 +86,10 @@ fun InstructionsIntent(
                 ValueRow(value = "adb shell am broadcast -a $action -n $packageName/.BackupReceiver")
 
                 BackupFormat.entries.forEach {
-                    ValueRow(title = "${stringResource(R.string.optionally)} (${it.value}):", value = "--es format ${it.value}")
+                    ValueRow(
+                        title = "${stringResource(R.string.optionally)} (${it.value}):",
+                        value = "--es format ${it.value}"
+                    )
                 }
             }
 
