@@ -55,7 +55,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import org.androidlabs.applistbackup.BackupService.Companion.FILE_NAME_PREFIX
 import org.androidlabs.applistbackup.backupnow.BackupFragment
+import org.androidlabs.applistbackup.data.BackupFormat
 import org.androidlabs.applistbackup.reader.BackupReaderFragment
 import org.androidlabs.applistbackup.settings.SettingsFragment
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
@@ -74,7 +76,12 @@ class MainActivity : FragmentActivity() {
                     cursor.getString(nameIndex)
                 }
 
-                if (fileName != null && fileName.endsWith(".html") && fileName.contains("app-list-backup")) {
+                val fileExtensions = BackupFormat.entries.map { format -> format.fileExtension() }
+                if (fileName != null && fileName.startsWith(FILE_NAME_PREFIX) && fileExtensions.any { ext ->
+                        fileName.endsWith(
+                            ".$ext"
+                        )
+                    }) {
                     try {
                         val tempFile = File(cacheDir, fileName)
                         contentResolver.openInputStream(it)?.use { inputStream ->

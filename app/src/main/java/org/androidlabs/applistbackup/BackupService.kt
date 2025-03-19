@@ -22,11 +22,15 @@ import android.provider.DocumentsContract
 import android.util.Base64
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.net.toFile
 import androidx.documentfile.provider.DocumentFile
 import org.androidlabs.applistbackup.data.BackupAppDetails
 import org.androidlabs.applistbackup.data.BackupAppInfo
 import org.androidlabs.applistbackup.data.BackupFormat
+import org.androidlabs.applistbackup.data.BackupRawFile
 import org.androidlabs.applistbackup.settings.Settings
+import org.androidlabs.applistbackup.utils.Utils.clearPrefixSlash
+import org.androidlabs.applistbackup.utils.Utils.isTV
 import java.io.ByteArrayOutputStream
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -53,20 +57,35 @@ class BackupService : Service() {
 
         private var onCompleteCallback: ((Uri) -> Unit)? = null
 
-        fun getBackupFolder(context: Context): DocumentFile? {
+        fun getBackupFolder(context: Context): BackupRawFile? {
             val backupsUri = Settings.getBackupUri(context) ?: return null
-            return DocumentFile.fromTreeUri(context, backupsUri)
+            if (isTV(context)) {
+                return BackupRawFile.fromFile(backupsUri.toFile(), context)
+            } else {
+                DocumentFile.fromTreeUri(context, backupsUri)?.let {
+                    return BackupRawFile.fromDocumentFile(it, context)
+                }
+
+                return null
+            }
         }
 
-        fun getReadablePathFromUri(uri: Uri?): String {
+        fun getReadablePathFromUri(context: Context, uri: Uri?): String {
+            var decodedPath = ""
             if (uri == null) {
-                return ""
+                return decodedPath
             }
-            val docId = DocumentsContract.getTreeDocumentId(uri)
-            val split = docId.split(":")
-            val type = split[0]
-            val path = split.getOrNull(1) ?: ""
-            val decodedPath = URLDecoder.decode(path, StandardCharsets.UTF_8.toString())
+            var type = "raw"
+
+            if (isTV(context)) {
+                decodedPath = uri.path!!
+            } else {
+                val docId = DocumentsContract.getTreeDocumentId(uri)
+                val split = docId.split(":")
+                type = split[0]
+                val path = split.getOrNull(1) ?: ""
+                decodedPath = URLDecoder.decode(path, StandardCharsets.UTF_8.toString())
+            }
 
             return when (type) {
                 "primary" -> "Internal Storage/${clearPrefixSlash(decodedPath)}"
@@ -94,30 +113,46 @@ class BackupService : Service() {
             }
         }
 
-        private fun getRawBackupFiles(context: Context): List<DocumentFile> {
+        private fun getRawBackupFiles(context: Context): List<BackupRawFile> {
             val fileExtensions = BackupFormat.entries.map { it.fileExtension() }
 
             val backupsUri = Settings.getBackupUri(context) ?: return emptyList()
-            val backupsDir = DocumentFile.fromTreeUri(context, backupsUri) ?: return emptyList()
-            if (backupsDir.exists() && backupsDir.isDirectory) {
-                val files = backupsDir.listFiles().filter { file ->
-                    file.name?.let { name ->
-                        name.startsWith(FILE_NAME_PREFIX) && fileExtensions.any { ext ->
-                            name.endsWith(
+            if (isTV(context)) {
+                val backupsDir = backupsUri.toFile()
+                if (backupsDir.exists() && backupsDir.isDirectory) {
+                    backupsDir.listFiles()
+                    val files = backupsDir.listFiles()?.filter { file ->
+                        file.name.startsWith(FILE_NAME_PREFIX) && fileExtensions.any { ext ->
+                            file.name.endsWith(
                                 ".$ext"
                             )
                         }
-                    } == true
+                    }
+                    return files?.map { BackupRawFile.fromFile(it, context) } ?: emptyList()
                 }
-                return files
+            } else {
+                val backupsDir = DocumentFile.fromTreeUri(context, backupsUri) ?: return emptyList()
+                if (backupsDir.exists() && backupsDir.isDirectory) {
+                    val files = backupsDir.listFiles().filter { file ->
+                        file.name?.let { name ->
+                            name.startsWith(FILE_NAME_PREFIX) && fileExtensions.any { ext ->
+                                name.endsWith(
+                                    ".$ext"
+                                )
+                            }
+                        } == true
+                    }
+                    return files.map { BackupRawFile.fromDocumentFile(it, context) }
+                }
             }
+
             return emptyList()
         }
 
         fun getLastCreatedFileUri(context: Context): Uri? {
             val files = getRawBackupFiles(context)
             if (files.isNotEmpty()) {
-                val sortedFiles = files.sortedByDescending { it.lastModified() }
+                val sortedFiles = files.sortedByDescending { it.lastModified }
 
                 val lastCreatedFile = sortedFiles.firstOrNull()
 
@@ -133,13 +168,12 @@ class BackupService : Service() {
 
             return getRawBackupFiles(context)
                 .map { file ->
-                    val name = file.name ?: return@map null
+                    val name = file.name
                     val dateString = name.removePrefix(FILE_NAME_PREFIX).substringBeforeLast('.')
                     val date = dateFormat.parse(dateString) ?: Date()
                     val title = getTitleFromUri(file.uri) ?: name
                     BackupFile(file.uri, date, title)
                 }
-                .filterNotNull()
                 .sortedByDescending { it.date }
         }
 
@@ -181,14 +215,6 @@ class BackupService : Service() {
 
             val broadcastIntent = Intent("org.androidlabs.applistbackup.BACKUP_ACTION")
             context.sendBroadcast(broadcastIntent)
-        }
-
-        private fun clearPrefixSlash(path: String): String {
-            val prefix = "/"
-            if (path.startsWith(prefix)) {
-                return path.removePrefix(prefix)
-            }
-            return path
         }
     }
 

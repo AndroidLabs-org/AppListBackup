@@ -37,7 +37,7 @@ class InstructionsActivity : ComponentActivity() {
         val appName =
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0))
                 .toString()
-        val backupPath = BackupService.getReadablePathFromUri(Settings.getBackupUri(this))
+        val backupPath = BackupService.getReadablePathFromUri(this, Settings.getBackupUri(this))
 
         val instructions = listOf(
             Instruction(

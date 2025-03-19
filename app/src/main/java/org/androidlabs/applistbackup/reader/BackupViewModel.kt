@@ -1,9 +1,13 @@
 package org.androidlabs.applistbackup.reader
 
 import android.app.Application
+import android.content.ContentResolver
+import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.core.content.FileProvider
+import androidx.core.net.toFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -16,6 +20,7 @@ import kotlinx.coroutines.launch
 import org.androidlabs.applistbackup.BackupFile
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.settings.Settings
+import org.androidlabs.applistbackup.utils.Utils.isTV
 
 class BackupViewModel(application: Application) : AndroidViewModel(application) {
     private val _uri = MutableLiveData<Uri?>(null)
@@ -46,7 +51,19 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
         )
     }
 
-    fun setUri(newUri: Uri) {
+    fun setUri(context: Context, newUri: Uri) {
+        if (isTV(context)) {
+            val isFileProvider = newUri.scheme == ContentResolver.SCHEME_CONTENT
+            if (!isFileProvider) {
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.provider",
+                    newUri.toFile()
+                )
+                _uri.value = uri
+                return
+            }
+        }
         _uri.value = newUri
     }
 
