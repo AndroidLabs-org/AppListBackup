@@ -86,13 +86,18 @@
         </provider>
 
         <activity
-            android:name=".TaskerPlugin"
+            android:name=".tasker.TaskerPlugin"
             android:exported="true"
             android:icon="@mipmap/ic_launcher">
             <intent-filter>
                 <action android:name="com.twofortyfouram.locale.intent.action.EDIT_SETTING" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".settings.data.BackupDataActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppListBackup" />
     </application>
 
 </manifest>

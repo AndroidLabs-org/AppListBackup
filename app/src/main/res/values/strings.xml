@@ -23,9 +23,10 @@
         3. Choose the \'App\' category and select \'Launch App\'.\n
         4. Press and hold \'%1$s\'.\n
         5. Choose \'RunBackupActivity\'.\n
-        6. Press the back button on your device or use the back navigation button on the top-left corner of the screen to return to the main Action Edit screen.\n
-        7. Configure any additional parameters of the task as needed.\n
-        8. Save and activate the profile to automate backups.
+        6. In the Data field, enter \'%%format=HTML\', \'%%format=CSV\', or \'%%format=Markdown\' for your preferred format (System format will be used if not specified).\n
+        7. Press the back button on your device or use the back navigation button on the top-left corner of the screen to return to the main Action Edit screen.\n
+        8. Configure any additional parameters of the task as needed.\n
+        9. Save and activate the profile to automate backups.
     </string>
     <string name="tasker_timeout">What is the timeout for Tasker?</string>
     <string name="tasker_timeout_description">
@@ -49,9 +50,10 @@
         4. Navigate to the \'Apps\' section and choose \'Plug-in action\'.\n
         5. Tap on the added block to open its settings.\n
         6. Press \'Pick plug-in\' and select \'%1$s\'.\n
-        7. Tap the \'Save\' button to confirm your selection.\n
-        8. Configure any additional parameters required for your flow.\n
-        9. Save the flow by pressing the save icon. You can now run this flow to automate backups.
+        7. Choose your preferred backup format.\n
+        8. Tap the \'Save\' button to confirm your selection.\n
+        9. Configure any additional parameters required for your flow.\n
+        10. Save the flow by pressing the save icon. You can now run this flow to automate backups.
     </string>
     <string name="macrodroid_integration">How does MacroDroid integration work?</string>
     <string name="macrodroid_integration_description">
@@ -60,9 +62,11 @@
         3. Configure the triggers that will initiate your macro.\n
         4. Press the \"+\" icon in the Actions section to add a new action.\n
         5. Choose the \'Applications\' category and select \'Tasker/Locale Plugin\'.\n
-        6. In the dialog, choose \'%1$s\' and select the appropriate event that appears below it. Press \'OK\' to confirm in the next dialog.\n
-        7. Configure any additional parameters required for your macro.\n
-        8. Save the macro by pressing the save icon. You can now run this macro to automate backups.
+        6. In the dialog, choose \'%1$s\' and select the appropriate event that appears below it.\n
+        7. Choose your preferred backup format.\n
+        8. Press \'OK\' to confirm in the next dialog.\n
+        9. Configure any additional parameters required for your macro.\n
+        10. Save the macro by pressing the save icon. You can now run this macro to automate backups.
     </string>
     <string name="intent_integration">How does Intent integration work?</string>
     <string name="intent_integration_description_1">%1$s provides a quick backup API. You can trigger %1$s by sending Intent Broadcasts. All values are clickable to copy to clipboard.</string>
@@ -76,8 +80,10 @@
             - Action: &quot;%1$s&quot;\n
             - Package: &quot;%2$s&quot;\n
             - Target: &quot;Broadcast Receiver&quot;\n
+            - Optionally, add Extra \'format:HTML\', \'format:CSV\', or \'format:Markdown\'  for your preferred format\n
         5. Press back to save the task and activate the profile.
     </string>
+    <string name="optionally">Optionally</string>
     <string name="loading">Loading…</string>
     <string name="error_message">Error: %1$s</string>
     <string name="wrong_file">Please select a backup file created by this application</string>
@@ -107,6 +113,7 @@
     <string name="manual">Manual</string>
     <string name="backup_done_title">Backup done for %1$s apps (%2$s)</string>
     <string name="backup_done_text">%1$s users apps and %2$s system apps.</string>
+    <string name="name_title">Name</string>
     <string name="package_title">Package</string>
     <string name="system_title">System</string>
     <string name="enabled_title">Enabled</string>
@@ -118,6 +125,8 @@
     <string name="installer">Install source</string>
     <string name="links_title">Links</string>
     <string name="links_title_details">is working only for published apps</string>
+    <string name="play_market_title">Play Market</string>
+    <string name="f_droid_title">F-Droid</string>
     <string name="text_copied">Text copied to clipboard</string>
     <string name="created_at">Created at</string>
     <string name="trigger_type">Trigger type</string>
@@ -161,4 +170,9 @@
     <string name="settings">Settings</string>
     <string name="backup_now">Backup now</string>
     <string name="last_backup">Last backup</string>
+    <string name="dropdown">Dropdown</string>
+    <string name="backup_format">Backup format</string>
+    <string name="backup_data_settings">Backup data settings</string>
+    <string name="select_all">Select all</string>
+    <string name="deselect_all">Deselect all</string>
 </resources>

@@ -1,15 +1,10 @@
 package org.androidlabs.applistbackup.reader
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -35,10 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -49,8 +41,7 @@ import kotlinx.coroutines.launch
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.MainActivityViewModel
 import org.androidlabs.applistbackup.R
-import java.text.SimpleDateFormat
-import java.util.Locale
+import org.androidlabs.applistbackup.data.BackupFormat
 
 class BackupReaderFragment(
     private val mainActivityViewModel: MainActivityViewModel
@@ -124,37 +115,9 @@ private fun DisplayHtmlContent(
     val backups by viewModel.backupFiles.observeAsState(initial = emptyList())
     val installedPackages by viewModel.installedPackages.observeAsState(initial = emptyList())
 
-    val titleFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+    val extension = uri.toString().substringAfterLast('.', "").lowercase()
 
-    val context = LocalContext.current
-    val webView = remember {
-        WebView(context).apply {
-            settings.javaScriptEnabled = true
-            settings.cacheMode = WebSettings.LOAD_NO_CACHE
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                    request?.url?.let { url ->
-                        val intent = Intent(Intent.ACTION_VIEW, url)
-                        context.startActivity(intent)
-                        return true
-                    }
-                    return false
-                }
-
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    val packagesList = installedPackages.joinToString(",") { "\"$it\"" }
-                    view?.evaluateJavascript("setInstalledApps([$packagesList])")  { }
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(uri) {
-        uri?.let {
-            webView.loadUrl(it.toString())
-        }
-    }
+    val format = BackupFormat.fromExtension(extension)
 
     if (uri != null) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -163,7 +126,8 @@ private fun DisplayHtmlContent(
                 modifier = Modifier.padding(start = 16.dp, end = 4.dp)
             ) {
                 Text(
-                    text = BackupService.parseDateFromUri(uri!!)?.let { titleFormatter.format(it) } ?: stringResource(R.string.backup),
+                    text = BackupService.getTitleFromUri(uri!!)
+                        ?: stringResource(R.string.backup),
                     modifier = Modifier
                         .weight(1f)
                 )
@@ -192,7 +156,30 @@ private fun DisplayHtmlContent(
                 }
             }
 
-            AndroidView(factory = { webView }, modifier = Modifier.weight(1f))
+            when (format) {
+                BackupFormat.HTML -> {
+                    BackupWebView(
+                        modifier = Modifier.weight(1f),
+                        uri = uri,
+                        installedPackages = installedPackages
+                    )
+                }
+
+                BackupFormat.CSV -> {
+                    BackupCsvView(
+                        modifier = Modifier.weight(1f),
+                        uri = uri
+                    )
+                }
+
+                BackupFormat.Markdown -> {
+                    BackupMarkdownView(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(16.dp), uri = uri
+                    )
+                }
+            }
         }
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -208,4 +195,3 @@ private fun DisplayHtmlContent(
         }
     }
 }
-

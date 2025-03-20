@@ -9,7 +9,7 @@ lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.9.3"
 composeBom = "2024.12.01"
 workRuntimeKtx = "2.10.0"
-runtimeLivedata = "1.7.5"
+runtimeLivedata = "1.7.6"
 taskerPluginLibrary = "0.4.10"
 documentfile = "1.0.1"
 fragmentKtx = "1.8.5"
@@ -17,6 +17,7 @@ navigationRuntimeKtx = "2.8.5"
 navigationCompose = "2.8.5"
 accompanist = "0.28.0"
 datastore = "1.1.1"
+markwon = "4.6.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -42,6 +43,12 @@ androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navig
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+markwon-core = { group = "io.noties.markwon", name = "core", version.ref = "markwon" }
+markwon-html = { group = "io.noties.markwon", name = "html", version.ref = "markwon" }
+markwon-image = { group = "io.noties.markwon", name = "image", version.ref = "markwon" }
+
+[bundles]
+markwon = ["markwon-core", "markwon-html", "markwon-image"]
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.accompanist.drawablepainter)
     implementation(libs.datastore.preferences)
+    implementation(libs.bundles.markwon)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

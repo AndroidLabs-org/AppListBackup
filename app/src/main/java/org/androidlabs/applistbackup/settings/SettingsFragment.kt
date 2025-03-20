@@ -10,6 +10,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -27,13 +28,17 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.R
+import org.androidlabs.applistbackup.data.BackupFormat
 import org.androidlabs.applistbackup.docs.DocsViewerActivity
 import org.androidlabs.applistbackup.faq.InstructionsActivity
+import org.androidlabs.applistbackup.settings.data.BackupDataActivity
+import org.androidlabs.applistbackup.ui.DropdownInput
 
 class SettingsFragment : Fragment() {
     private val viewModel: SettingsViewModel by viewModels()
@@ -50,17 +55,18 @@ class SettingsFragment : Fragment() {
         val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
         version = "${packageInfo.versionName} (${packageInfo.longVersionCode})"
 
-        setFolderLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                result.data?.data?.let { uri ->
-                    val takeFlags = (result.data?.flags ?: 0) and
-                            (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    context.contentResolver.takePersistableUriPermission(uri, takeFlags)
+        setFolderLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == RESULT_OK) {
+                    result.data?.data?.let { uri ->
+                        val takeFlags = (result.data?.flags ?: 0) and
+                                (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                        context.contentResolver.takePersistableUriPermission(uri, takeFlags)
 
-                    viewModel.saveBackupUri(uri)
+                        viewModel.saveBackupUri(uri)
+                    }
                 }
             }
-        }
     }
 
     override fun onCreateView(
@@ -74,10 +80,16 @@ class SettingsFragment : Fragment() {
                     version = version,
                     onChangeDestination = ::onChangeDestination,
                     onFAQ = ::onFAQ,
-                    openDoc = ::openDoc
+                    openDoc = ::openDoc,
+                    onBackupDataSettings = ::onBackupDataSettings
                 )
             }
         }
+    }
+
+    private fun onBackupDataSettings() {
+        val intent = Intent(requireContext(), BackupDataActivity::class.java)
+        startActivity(intent)
     }
 
     private fun openDoc(nameId: Int, fileName: String) {
@@ -105,12 +117,14 @@ private fun SettingsScreen(
     version: String,
     onChangeDestination: () -> Unit,
     onFAQ: () -> Unit,
-    openDoc: (nameId: Int, fileName: String) -> Unit
+    openDoc: (nameId: Int, fileName: String) -> Unit,
+    onBackupDataSettings: () -> Unit,
 ) {
     val backupUri = viewModel.backupUri.observeAsState()
+    val backupFormat = viewModel.backupFormat.observeAsState(initial = BackupFormat.HTML)
 
     LaunchedEffect(key1 = true) {
-        viewModel.refreshBackupUri()
+        viewModel.refresh()
     }
 
     val scrollState = rememberScrollState()
@@ -133,10 +147,51 @@ private fun SettingsScreen(
             },
             footerView = {
                 Text(
-                    text = if (backupUri.value !== null) BackupService.getReadablePathFromUri(backupUri.value) else stringResource(R.string.none),
+                    text = if (backupUri.value !== null) BackupService.getReadablePathFromUri(
+                        backupUri.value
+                    ) else stringResource(R.string.none),
                     fontSize = 12.sp,
                 )
             }
+        )
+
+        SettingsRow(
+            title = stringResource(id = R.string.backup_format),
+            subtitle = null,
+            iconView = {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_file_24),
+                    contentDescription = stringResource(id = R.string.backup_format),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                )
+            },
+            rightView = {
+                DropdownInput(
+                    entries = BackupFormat.entries.map { it.value },
+                    value = backupFormat.value.value,
+                    onChange = { viewModel.saveBackupFormat(BackupFormat.fromString(it)) },
+                    modifier = Modifier.width(128.dp)
+                )
+            }
+        )
+
+        SettingsRow(
+            title = stringResource(id = R.string.backup_data_settings),
+            subtitle = null,
+            iconView = {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_dataset_24),
+                    contentDescription = stringResource(id = R.string.backup_data_settings),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                )
+            },
+            rightView = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                )
+            },
+            onClick = onBackupDataSettings
         )
 
         SettingsRow(

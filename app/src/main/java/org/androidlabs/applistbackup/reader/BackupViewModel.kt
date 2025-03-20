@@ -4,16 +4,18 @@ import android.app.Application
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
-import android.os.FileObserver
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import org.androidlabs.applistbackup.BackupFile
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.settings.Settings
-import java.io.File
 
 class BackupViewModel(application: Application) : AndroidViewModel(application) {
     private val _uri = MutableLiveData<Uri?>(null)
@@ -23,71 +25,61 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     val backupFiles: LiveData<List<BackupFile>> = _backupFiles
 
     private val _installedPackages = MutableLiveData<List<String>>(emptyList())
-    val installedPackages: LiveData<List<String>> = _installedPackages;
+    val installedPackages: LiveData<List<String>> = _installedPackages
 
-    private var backupUriListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
-    private var fileObserver: FileObserver? = null
+    private var backupSettingsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
+    private var pollingJob: Job? = null
 
     init {
-        initializeFileObserver()
+        refreshBackups()
         val packageManager = application.packageManager
         val installedPackages = packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
         val packageNames = installedPackages.map { it.packageName }
         _installedPackages.value = packageNames
 
-        backupUriListener = Settings.observeBackupUri(getApplication(), {
-            initializeFileObserver()
-            updateBackupFiles()
-            _uri.value = BackupService.getLastCreatedFileUri(getApplication())
-        })
+        backupSettingsListener = Settings.observeBackupUri(
+            context = getApplication(),
+            onChangeBackupUri = {
+                refreshBackups()
+                _uri.value = BackupService.getLastCreatedFileUri(getApplication())
+            }
+        )
     }
 
     fun setUri(newUri: Uri) {
         _uri.value = newUri
     }
 
-    private fun initializeFileObserver() {
-        val backupsUri = Settings.getBackupUri(getApplication()) ?: return
-
-        val backupFolderPath =
-            DocumentFile.fromTreeUri(getApplication(), backupsUri)?.uri?.path ?: return
-
-        fileObserver?.stopWatching()
-
-        fileObserver = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val backupFolder = File(backupFolderPath)
-            object : FileObserver(backupFolder, CREATE or DELETE or MODIFY) {
-                override fun onEvent(event: Int, path: String?) {
-                    if (path != null) {
-                        updateBackupFiles()
-                    }
-                }
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            object : FileObserver(backupFolderPath) {
-                override fun onEvent(event: Int, path: String?) {
-                    if (event == CREATE || event == DELETE || event == MODIFY) {
-                        if (path != null) {
-                            updateBackupFiles()
-                        }
-                    }
-                }
-            }
-        }
-
-        fileObserver?.startWatching()
+    private fun refreshBackups() {
+        initializeFileObserver()
+        updateBackupFiles()
     }
 
-    fun updateBackupFiles() {
+    private fun initializeFileObserver() {
+        pollingJob?.cancel()
+
+        pollingJob = viewModelScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                val files = BackupService.getBackupFiles(getApplication())
+                if (files.count() != (_backupFiles.value?.count() ?: 0)) {
+                    viewModelScope.launch {
+                        _backupFiles.value = files
+                    }
+                }
+                delay(2000)
+            }
+        }
+    }
+
+    private fun updateBackupFiles() {
         val files = BackupService.getBackupFiles(getApplication())
         _backupFiles.value = files
     }
 
     override fun onCleared() {
         super.onCleared()
-        fileObserver?.stopWatching()
-        backupUriListener?.let {
+        pollingJob?.cancel()
+        backupSettingsListener?.let {
             Settings.unregisterListener(getApplication(), it)
         }
     }
