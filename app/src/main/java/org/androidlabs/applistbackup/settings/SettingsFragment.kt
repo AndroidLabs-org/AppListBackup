@@ -4,7 +4,6 @@ import android.Manifest
 import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -151,7 +150,7 @@ class SettingsFragment : Fragment() {
                 try {
                     val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
                         addCategory(Intent.CATEGORY_DEFAULT)
-                        data = Uri.parse("package:${requireContext().applicationContext.packageName}")
+                        data = "package:${requireContext().applicationContext.packageName}".toUri()
                     }
                     allFilesPermissionLauncher.launch(intent)
                 } catch (e: Exception) {

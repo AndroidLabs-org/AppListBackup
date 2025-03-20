@@ -1,5 +1,6 @@
 package org.androidlabs.applistbackup
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -31,9 +32,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -46,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat.getDrawable
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commit
@@ -62,6 +66,7 @@ import org.androidlabs.applistbackup.reader.BackupReaderFragment
 import org.androidlabs.applistbackup.settings.SettingsFragment
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
 import java.io.File
+import java.util.UUID
 
 class MainActivity : FragmentActivity() {
     private val viewModel: MainActivityViewModel by viewModels()
@@ -142,7 +147,7 @@ class MainActivity : FragmentActivity() {
 
         val uriString = intent.getStringExtra("uri")
         uriString?.let {
-            viewModel.setUri(Uri.parse(it))
+            viewModel.setUri(it.toUri())
             viewModel.navigateToBrowse()
         }
     }
@@ -287,34 +292,61 @@ private fun MainScreen(
                 .padding(innerPadding)
         ) {
             composable(Screen.Backup.route) {
-                FragmentScreen(BackupFragment())
+                FragmentScreen(
+                    fragmentCreator = { BackupFragment() }
+                )
             }
             composable(Screen.Browse.route) {
-                FragmentScreen(BackupReaderFragment(viewModel))
+                FragmentScreen(
+                    fragmentCreator = { BackupReaderFragment(viewModel) }
+                )
             }
             composable(Screen.Settings.route) {
-                FragmentScreen(SettingsFragment())
+                FragmentScreen(
+                    fragmentCreator = { SettingsFragment() }
+                )
             }
         }
     }
 }
 
+@SuppressLint("ContextCastToActivity")
 @Composable
-private fun FragmentScreen(fragment: Fragment) {
+private fun FragmentScreen(
+    fragmentCreator: () -> Fragment,
+    modifier: Modifier = Modifier
+) {
     val activity = LocalContext.current as FragmentActivity
+    val fragmentTag = remember { "fragment-${UUID.randomUUID()}" }
+    val containerId = remember { View.generateViewId() }
+
+    val fragment = remember(fragmentTag) { fragmentCreator() }
 
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         factory = { context ->
-            val frameLayout = FrameLayout(context).apply {
-                id = View.generateViewId()
+            FrameLayout(context).apply {
+                id = containerId
             }
-
-            activity.supportFragmentManager.commit {
-                replace(frameLayout.id, fragment)
+        },
+        update = { frameLayout ->
+            val currentFragment = activity.supportFragmentManager.findFragmentByTag(fragmentTag)
+            if (currentFragment == null) {
+                activity.supportFragmentManager.commit {
+                    replace(frameLayout.id, fragment, fragmentTag)
+                    setReorderingAllowed(true)
+                }
             }
-
-            frameLayout
         }
     )
+
+    DisposableEffect(fragmentTag) {
+        onDispose {
+            activity.supportFragmentManager.findFragmentByTag(fragmentTag)?.let { fragmentToRemove ->
+                activity.supportFragmentManager.commit {
+                    remove(fragmentToRemove)
+                }
+            }
+        }
+    }
 }
