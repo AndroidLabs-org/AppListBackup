@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
@@ -54,7 +55,7 @@ class BackupReaderFragment(
         super.onCreate(savedInstanceState)
         val lastUri = BackupService.getLastCreatedFileUri(requireContext())
         lastUri?.let {
-            viewModel.setUri(it)
+            viewModel.setUri(requireContext(), it)
         }
     }
 
@@ -70,7 +71,7 @@ class BackupReaderFragment(
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 mainActivityViewModel.uri.collect { uri ->
                     uri?.let {
-                        viewModel.setUri(it)
+                        viewModel.setUri(requireContext(), it)
                     }
                 }
             }
@@ -95,7 +96,7 @@ class BackupReaderFragment(
         val context = requireContext()
         if (viewModel.uri.value == null) {
             BackupService.run(context, onComplete = { uri ->
-                viewModel.setUri(uri)
+                viewModel.setUri(context, uri)
             })
         } else {
             BackupService.run(context)
@@ -111,15 +112,16 @@ private fun DisplayHtmlContent(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+
     val uri by viewModel.uri.observeAsState()
     val backups by viewModel.backupFiles.observeAsState(initial = emptyList())
     val installedPackages by viewModel.installedPackages.observeAsState(initial = emptyList())
 
-    val extension = uri.toString().substringAfterLast('.', "").lowercase()
-
-    val format = BackupFormat.fromExtension(extension)
-
     if (uri != null) {
+        val extension = uri.toString().substringAfterLast('.', "").lowercase()
+        val format = BackupFormat.fromExtension(extension)
+
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -149,7 +151,7 @@ private fun DisplayHtmlContent(
                                 Text(backup.title)
                             }, onClick = {
                                 expanded = false
-                                viewModel.setUri(backup.uri)
+                                viewModel.setUri(context, backup.uri)
                             })
                         }
                     }

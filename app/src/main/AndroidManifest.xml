@@ -7,16 +7,33 @@
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"
+        tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
 
     <application
         android:allowBackup="true"
+        android:requestLegacyExternalStorage="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppListBackup">
+        android:theme="@style/Theme.AppListBackup"
+        android:banner="@drawable/ic_tv_banner">
+
         <receiver
             android:name=".BackupReceiver"
             android:enabled="true"
@@ -54,6 +71,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+
             <meta-data
                 android:name="android.app.shortcuts"
                 android:exported="true"
@@ -72,6 +94,11 @@
 
         <activity
             android:name=".RunBackupActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppListBackup" />
+
+        <activity
+            android:name=".settings.tvpicker.TvFolderPickerActivity"
             android:exported="true"
             android:theme="@style/Theme.AppListBackup" />
 

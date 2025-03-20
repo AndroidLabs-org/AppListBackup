@@ -19,11 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,6 +50,7 @@ class BackupFragment : Fragment() {
                             modifier = Modifier.padding(innerPadding),
                             viewModel = viewModel,
                             runBackup = ::runBackup,
+                            onRequestNotificationsPermission = ::onRequestNotificationsPermission
                         )
                     }
                 }
@@ -62,6 +61,14 @@ class BackupFragment : Fragment() {
     private fun runBackup() {
         BackupService.run(requireContext())
     }
+
+    private fun onRequestNotificationsPermission() {
+        val context = requireContext()
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        }
+        startActivity(intent)
+    }
 }
 
 @Composable
@@ -69,6 +76,7 @@ private fun ActivityState(
     modifier: Modifier = Modifier,
     viewModel: BackupViewModel,
     runBackup: () -> Unit,
+    onRequestNotificationsPermission: () -> Unit
 ) {
     val isNotificationEnabled = viewModel.notificationEnabled.observeAsState(initial = false)
     val backupUri = viewModel.backupUri.observeAsState()
@@ -92,13 +100,6 @@ private fun ActivityState(
         }
     }
 
-    val context = LocalContext.current
-    val settingsIntent = remember {
-        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-            putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-        }
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -114,7 +115,7 @@ private fun ActivityState(
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { context.startActivity(settingsIntent) }) {
+                Button(onClick = onRequestNotificationsPermission) {
                     Text(text = stringResource(R.string.notifications_enable))
                 }
             }
