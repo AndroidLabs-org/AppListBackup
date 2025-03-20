@@ -6,65 +6,108 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.net.toFile
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.androidlabs.applistbackup.BackupFile
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.settings.Settings
 import org.androidlabs.applistbackup.utils.Utils.isTV
 
 class BackupViewModel(application: Application) : AndroidViewModel(application) {
-    private val _uri = MutableLiveData<Uri?>(null)
-    val uri: LiveData<Uri?> = _uri
+    private val tag: String = "BackupViewModel"
 
-    private val _backupFiles = MutableLiveData<List<BackupFile>>(emptyList())
-    val backupFiles: LiveData<List<BackupFile>> = _backupFiles
+    private val _uri = MutableStateFlow<Uri?>(null)
+    val uri: StateFlow<Uri?> = _uri.asStateFlow()
 
-    private val _installedPackages = MutableLiveData<List<String>>(emptyList())
-    val installedPackages: LiveData<List<String>> = _installedPackages
+    private val _backupFiles = MutableStateFlow<List<BackupFile>>(emptyList())
+    val backupFiles: StateFlow<List<BackupFile>> = _backupFiles.asStateFlow()
+
+    private val _installedPackages = MutableStateFlow<List<String>>(emptyList())
+    val installedPackages: StateFlow<List<String>> = _installedPackages.asStateFlow()
 
     private var backupSettingsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var pollingJob: Job? = null
 
-    init {
-        refreshBackups()
-        val packageManager = application.packageManager
-        val installedPackages = packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
-        val packageNames = installedPackages.map { it.packageName }
-        _installedPackages.value = packageNames
+    private val viewModelSupervisorJob = SupervisorJob()
 
-        backupSettingsListener = Settings.observeBackupUri(
-            context = getApplication(),
-            onChangeBackupUri = {
-                refreshBackups()
-                _uri.value = BackupService.getLastCreatedFileUri(getApplication())
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            initializeViewModel()
+        }
+    }
+
+    private suspend fun initializeViewModel() {
+        withContext(Dispatchers.IO) {
+            loadInstalledPackages()
+
+            withContext(Dispatchers.Main) {
+                backupSettingsListener = Settings.observeBackupUri(
+                    context = getApplication(),
+                    onChangeBackupUri = {
+                        viewModelScope.launch(Dispatchers.IO) {
+                            refreshBackups()
+                            val lastUri = BackupService.getLastCreatedFileUri(getApplication())
+                            _uri.value = lastUri
+                        }
+                    }
+                )
             }
-        )
+
+            refreshBackups()
+        }
+    }
+
+    private suspend fun loadInstalledPackages() {
+        withContext(Dispatchers.IO) {
+            try {
+                val packageManager = getApplication<Application>().packageManager
+                val packages = packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
+                val packageNames = packages.map { it.packageName }
+                _installedPackages.value = packageNames
+            } catch (e: Exception) {
+                Log.e(tag, e.toString())
+                _installedPackages.value = emptyList()
+            }
+        }
     }
 
     fun setUri(context: Context, newUri: Uri) {
-        if (isTV(context)) {
-            val isFileProvider = newUri.scheme == ContentResolver.SCHEME_CONTENT
-            if (!isFileProvider) {
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.provider",
-                    newUri.toFile()
-                )
-                _uri.value = uri
-                return
+        viewModelScope.launch(Dispatchers.IO) {
+            val finalUri = if (isTV(context)) {
+                val isFileProvider = newUri.scheme == ContentResolver.SCHEME_CONTENT
+                if (!isFileProvider) {
+                    try {
+                        FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.provider",
+                            newUri.toFile()
+                        )
+                    } catch (e: Exception) {
+                        Log.e(tag, e.toString())
+                        newUri
+                    }
+                } else {
+                    newUri
+                }
+            } else {
+                newUri
             }
+
+            _uri.value = finalUri
         }
-        _uri.value = newUri
     }
 
     private fun refreshBackups() {
@@ -75,26 +118,36 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     private fun initializeFileObserver() {
         pollingJob?.cancel()
 
-        pollingJob = viewModelScope.launch(Dispatchers.IO) {
+        pollingJob = viewModelScope.launch(Dispatchers.IO + viewModelSupervisorJob) {
             while (isActive) {
-                val files = BackupService.getBackupFiles(getApplication())
-                if (files.count() != (_backupFiles.value?.count() ?: 0)) {
-                    viewModelScope.launch {
+                try {
+                    val files = BackupService.getBackupFiles(getApplication())
+                    val currentCount = _backupFiles.value.size
+
+                    if (files.size != currentCount) {
                         _backupFiles.value = files
                     }
+                } catch (e: Exception) {
+                    Log.e(tag, e.toString())
                 }
-                delay(2000)
             }
         }
     }
 
     private fun updateBackupFiles() {
-        val files = BackupService.getBackupFiles(getApplication())
-        _backupFiles.value = files
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val files = BackupService.getBackupFiles(getApplication())
+                _backupFiles.value = files
+            } catch (e: Exception) {
+                Log.e(tag, e.toString())
+            }
+        }
     }
 
     override fun onCleared() {
         super.onCleared()
+        viewModelSupervisorJob.cancelChildren()
         pollingJob?.cancel()
         backupSettingsListener?.let {
             Settings.unregisterListener(getApplication(), it)
