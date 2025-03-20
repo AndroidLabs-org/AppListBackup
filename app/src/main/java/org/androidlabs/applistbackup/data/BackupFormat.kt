@@ -5,7 +5,7 @@ enum class BackupFormat(
     private val extension: String,
     private val mimeType: String
 ) {
-    HTML("HTML", "html", "text/csv"),
+    HTML("HTML", "html", "text/html"),
     CSV("CSV", "csv", "text/csv"),
     Markdown("Markdown", "md", "text/markdown");
 
