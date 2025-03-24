@@ -128,6 +128,7 @@ private fun TvFolderPicker(
                         selectedIndex = (selectedIndex + 1) % totalItems
                         true
                     }
+
                     keyEvent.key == Key.DirectionUp &&
                             keyEvent.type == KeyEventType.KeyDown -> {
                         selectedIndex = if (selectedIndex > 0) {
@@ -137,6 +138,7 @@ private fun TvFolderPicker(
                         }
                         true
                     }
+
                     keyEvent.key == Key.Enter &&
                             keyEvent.type == KeyEventType.KeyDown -> {
                         when (selectedIndex) {
@@ -145,6 +147,7 @@ private fun TvFolderPicker(
                             2 -> if (!isExternalStorage) {
                                 currentPath = currentPath.parentFile ?: currentPath
                             }
+
                             else -> {
                                 val folderIndex = selectedIndex - startItemsCount
                                 if (folderIndex < folders.size) {
@@ -154,6 +157,7 @@ private fun TvFolderPicker(
                         }
                         true
                     }
+
                     else -> false
                 }
             }
