@@ -12,8 +12,8 @@ android {
         applicationId = "org.androidlabs.applistbackup"
         minSdk = 28
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.0.5"
+        versionCode = 13
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
