@@ -148,10 +148,12 @@ class SettingsFragment : Fragment() {
                 onGranted()
             } else {
                 try {
-                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                        addCategory(Intent.CATEGORY_DEFAULT)
-                        data = "package:${requireContext().applicationContext.packageName}".toUri()
-                    }
+                    val intent =
+                        Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                            addCategory(Intent.CATEGORY_DEFAULT)
+                            data =
+                                "package:${requireContext().applicationContext.packageName}".toUri()
+                        }
                     allFilesPermissionLauncher.launch(intent)
                 } catch (e: Exception) {
                     requestBasicStoragePermissions()
@@ -169,7 +171,10 @@ class SettingsFragment : Fragment() {
         )
 
         if (permissions.all { permission ->
-                checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED
+                checkSelfPermission(
+                    requireContext(),
+                    permission
+                ) == PackageManager.PERMISSION_GRANTED
             }) {
             onPermissionGranted?.invoke()
         } else {

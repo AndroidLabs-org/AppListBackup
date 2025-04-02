@@ -46,6 +46,7 @@ class BackupRawFile private constructor(
                     fromDocumentFile(newDoc, context)
                 }
             }
+
             file != null -> {
                 val newFile = File(file.parentFile, fileName)
                 try {
@@ -57,6 +58,7 @@ class BackupRawFile private constructor(
                     null
                 }
             }
+
             else -> throw IllegalStateException("Neither file nor documentFile is available")
         }
     }

@@ -32,10 +32,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,8 +50,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat.getDrawable
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -66,10 +66,17 @@ import org.androidlabs.applistbackup.reader.BackupReaderFragment
 import org.androidlabs.applistbackup.settings.SettingsFragment
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
 import java.io.File
-import java.util.UUID
 
 class MainActivity : FragmentActivity() {
     private val viewModel: MainActivityViewModel by viewModels()
+
+    private val backupContainerId = View.generateViewId()
+    private val browseContainerId = View.generateViewId()
+    private val settingsContainerId = View.generateViewId()
+
+    private var backupFragment: BackupFragment? = null
+    private var browseFragment: BackupReaderFragment? = null
+    private var settingsFragment: SettingsFragment? = null
 
     private val pickHtmlFile =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
@@ -132,10 +139,37 @@ class MainActivity : FragmentActivity() {
                 MainScreen(
                     title = appName,
                     viewModel = viewModel,
-                    onBrowse = ::onBrowse
+                    onBrowse = ::onBrowse,
+                    backupContainerId = backupContainerId,
+                    browseContainerId = browseContainerId,
+                    settingsContainerId = settingsContainerId,
+                    getBackupFragment = { getOrCreateBackupFragment() },
+                    getBrowseFragment = { getOrCreateBrowseFragment() },
+                    getSettingsFragment = { getOrCreateSettingsFragment() }
                 )
             }
         }
+    }
+
+    private fun getOrCreateBackupFragment(): BackupFragment {
+        if (backupFragment == null) {
+            backupFragment = BackupFragment()
+        }
+        return backupFragment!!
+    }
+
+    private fun getOrCreateBrowseFragment(): BackupReaderFragment {
+        if (browseFragment == null) {
+            browseFragment = BackupReaderFragment(viewModel)
+        }
+        return browseFragment!!
+    }
+
+    private fun getOrCreateSettingsFragment(): SettingsFragment {
+        if (settingsFragment == null) {
+            settingsFragment = SettingsFragment()
+        }
+        return settingsFragment!!
     }
 
     private fun onBrowse() {
@@ -169,13 +203,18 @@ private sealed class Screen(val route: String, val titleResId: Int) {
 
 @Composable
 private fun BottomNavigationBar(navController: NavController) {
-    val items = listOf(
-        Screen.Backup,
-        Screen.Browse,
-        Screen.Settings
-    )
+    val items = remember {
+        listOf(
+            Screen.Backup,
+            Screen.Browse,
+            Screen.Settings
+        )
+    }
+
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+
     NavigationBar {
-        val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
         items.forEach { screen ->
             NavigationBarItem(
                 modifier = Modifier.navigationBarsPadding(),
@@ -195,15 +234,19 @@ private fun BottomNavigationBar(navController: NavController) {
                 label = { Text(stringResource(screen.titleResId)) },
                 selected = currentRoute == screen.route,
                 onClick = {
-                    navController.navigate(screen.route) {
-                        // Prevent multiple copies of the same destination
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
+                    if (currentRoute != screen.route) {
+                        navController.navigate(screen.route) {
+                            // Pop up to the start destination of the graph to
+                            // avoid building up a large stack of destinations
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            // Avoid multiple copies of the same destination when
+                            // reselecting the same item
+                            launchSingleTop = true
+                            // Restore state when reselecting a previously selected item
+                            restoreState = true
                         }
-                        // Avoid creating multiple instances of the same destination
-                        launchSingleTop = true
-                        // Restore state when re-selecting a previously selected item
-                        restoreState = true
                     }
                 }
             )
@@ -211,16 +254,25 @@ private fun BottomNavigationBar(navController: NavController) {
     }
 }
 
+@SuppressLint("ContextCastToActivity")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainScreen(
     title: String,
     viewModel: MainActivityViewModel,
     onBrowse: () -> Unit,
+    backupContainerId: Int,
+    browseContainerId: Int,
+    settingsContainerId: Int,
+    getBackupFragment: () -> BackupFragment,
+    getBrowseFragment: () -> BackupReaderFragment,
+    getSettingsFragment: () -> SettingsFragment
 ) {
     val navController = rememberNavController()
     val shouldNavigate by viewModel.shouldNavigateToBrowse.collectAsState()
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+
     val titleForScreen = when (currentRoute) {
         Screen.Backup.route -> stringResource(R.string.backup)
         Screen.Browse.route -> stringResource(R.string.view_backups)
@@ -234,9 +286,10 @@ private fun MainScreen(
         if (shouldNavigate) {
             navController.navigate(Screen.Browse.route) {
                 popUpTo(navController.graph.startDestinationId) {
-                    inclusive = true
+                    saveState = true
                 }
                 launchSingleTop = true
+                restoreState = true
             }
             viewModel.onNavigationHandled()
         }
@@ -287,66 +340,81 @@ private fun MainScreen(
             BottomNavigationBar(navController)
         }
     ) { innerPadding ->
+        val activity = LocalContext.current as FragmentActivity
+
+        val containersInitialized = remember { mutableStateOf(false) }
+
+        AndroidView(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            factory = { context ->
+                FrameLayout(context).apply {
+                    addView(FragmentContainerView(context).apply {
+                        id = backupContainerId
+                        visibility = View.VISIBLE
+                    })
+
+                    addView(FragmentContainerView(context).apply {
+                        id = browseContainerId
+                        visibility = View.GONE
+                    })
+
+                    addView(FragmentContainerView(context).apply {
+                        id = settingsContainerId
+                        visibility = View.GONE
+                    })
+
+                    // Initialize fragments only once
+                    post {
+                        if (!containersInitialized.value) {
+                            activity.supportFragmentManager.commit {
+                                add(backupContainerId, getBackupFragment())
+                                add(browseContainerId, getBrowseFragment())
+                                add(settingsContainerId, getSettingsFragment())
+                                setReorderingAllowed(true)
+                            }
+                            containersInitialized.value = true
+                        }
+                    }
+                }
+            },
+            update = { parentLayout ->
+                val backupContainer = parentLayout.findViewById<View>(backupContainerId)
+                val browseContainer = parentLayout.findViewById<View>(browseContainerId)
+                val settingsContainer = parentLayout.findViewById<View>(settingsContainerId)
+
+                when (currentRoute) {
+                    Screen.Backup.route -> {
+                        backupContainer.visibility = View.VISIBLE
+                        browseContainer.visibility = View.GONE
+                        settingsContainer.visibility = View.GONE
+                    }
+
+                    Screen.Browse.route -> {
+                        backupContainer.visibility = View.GONE
+                        browseContainer.visibility = View.VISIBLE
+                        settingsContainer.visibility = View.GONE
+                        getBrowseFragment().loadLastBackup()
+                    }
+
+                    Screen.Settings.route -> {
+                        backupContainer.visibility = View.GONE
+                        browseContainer.visibility = View.GONE
+                        settingsContainer.visibility = View.VISIBLE
+                    }
+                }
+            }
+        )
+
         NavHost(
-            navController, startDestination = Screen.Backup.route, modifier = Modifier
-                .padding(innerPadding)
+            navController = navController,
+            startDestination = Screen.Backup.route,
+            modifier = Modifier.fillMaxSize() // This is invisible but needed for navigation
         ) {
-            composable(Screen.Backup.route) {
-                FragmentScreen(
-                    fragmentCreator = { BackupFragment() }
-                )
-            }
-            composable(Screen.Browse.route) {
-                FragmentScreen(
-                    fragmentCreator = { BackupReaderFragment(viewModel) }
-                )
-            }
-            composable(Screen.Settings.route) {
-                FragmentScreen(
-                    fragmentCreator = { SettingsFragment() }
-                )
-            }
-        }
-    }
-}
-
-@SuppressLint("ContextCastToActivity")
-@Composable
-private fun FragmentScreen(
-    fragmentCreator: () -> Fragment,
-    modifier: Modifier = Modifier
-) {
-    val activity = LocalContext.current as FragmentActivity
-    val fragmentTag = remember { "fragment-${UUID.randomUUID()}" }
-    val containerId = remember { View.generateViewId() }
-
-    val fragment = remember(fragmentTag) { fragmentCreator() }
-
-    AndroidView(
-        modifier = modifier.fillMaxSize(),
-        factory = { context ->
-            FrameLayout(context).apply {
-                id = containerId
-            }
-        },
-        update = { frameLayout ->
-            val currentFragment = activity.supportFragmentManager.findFragmentByTag(fragmentTag)
-            if (currentFragment == null) {
-                activity.supportFragmentManager.commit {
-                    replace(frameLayout.id, fragment, fragmentTag)
-                    setReorderingAllowed(true)
-                }
-            }
-        }
-    )
-
-    DisposableEffect(fragmentTag) {
-        onDispose {
-            activity.supportFragmentManager.findFragmentByTag(fragmentTag)?.let { fragmentToRemove ->
-                activity.supportFragmentManager.commit {
-                    remove(fragmentToRemove)
-                }
-            }
+            composable(Screen.Backup.route) { }
+            composable(Screen.Browse.route) { }
+            composable(Screen.Settings.route) { }
         }
     }
 }

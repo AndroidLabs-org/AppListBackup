@@ -37,8 +37,11 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.MainActivityViewModel
 import org.androidlabs.applistbackup.R
@@ -53,16 +56,24 @@ class BackupReaderFragment(
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val lastUri = BackupService.getLastCreatedFileUri(requireContext())
-        lastUri?.let {
-            viewModel.setUri(requireContext(), it)
-        }
+        loadLastBackup()
     }
 
     override fun onDestroy() {
         uriSubscription?.cancel()
         uriSubscription = null
         super.onDestroy()
+    }
+
+    fun loadLastBackup() {
+        viewModel.viewModelScope.launch(Dispatchers.IO) {
+            val lastUri = BackupService.getLastCreatedFileUri(requireContext())
+            lastUri?.let {
+                withContext(Dispatchers.Main) {
+                    viewModel.setUri(requireContext(), it)
+                }
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
