@@ -2,7 +2,6 @@ package org.androidlabs.applistbackup.data
 
 import org.androidlabs.applistbackup.data.BackupFormat.entries
 
-
 enum class BackupFormat(
     val value: String,
     private val extension: String,

@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 import org.androidlabs.applistbackup.data.BackupAppDetails
 import org.androidlabs.applistbackup.data.BackupAppInfo
 import org.androidlabs.applistbackup.data.BackupFormat
+import org.androidlabs.applistbackup.data.BackupFormatResult
 import org.androidlabs.applistbackup.data.BackupRawFile
 import org.androidlabs.applistbackup.settings.Settings
 import org.androidlabs.applistbackup.utils.Utils.clearPrefixSlash
@@ -382,6 +383,8 @@ class BackupService : Service() {
                 val userAppsCount = appsCount - systemAppsCount
                 val disabledAppsCount = appsCount - enabledAppsCount
 
+                val results: MutableList<BackupFormatResult> = mutableListOf()
+
                 formats.forEach { format ->
                     try {
                         val fileName = "$FILE_NAME_PREFIX$currentTime.${format.fileExtension()}"
@@ -694,53 +697,81 @@ class BackupService : Service() {
                             throw Error(getString(R.string.file_create_failed))
                         }
 
-
-                        val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
-                            putExtra("uri", newFile.uri.toString())
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        }
-
-                        val notificationId = getNotificationId()
-
-                        val pendingIntent = PendingIntent.getActivity(
-                            this,
-                            notificationId,
-                            mainActivityIntent,
-                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                        results.add(
+                            BackupFormatResult(
+                                format,
+                                newFile,
+                                null
+                            )
                         )
-
-                        val successfulTitle =
-                            getString(R.string.backup_done_title, appsCount.toString(), type)
-                        val successfulText = getString(
-                            R.string.backup_done_text,
-                            userAppsCount.toString(),
-                            systemAppsCount.toString()
-                        )
-
-                        val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
-                            .setContentTitle(successfulTitle)
-                            .setContentText(successfulText)
-                            .setSmallIcon(R.drawable.ic_launcher_foreground)
-                            .setContentIntent(pendingIntent)
-                            .build()
-
-                        val manager = getSystemService(NotificationManager::class.java)
-                        manager.notify(notificationId, endNotification)
-
-                        if (onCompleteCallback != null) {
-                            onCompleteCallback?.let { it(newFile.uri) }
-                            onCompleteCallback = null
-                        }
                     } catch (exception: Exception) {
-                        val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
-                            .setContentTitle(getString(R.string.backup_failed))
-                            .setContentText(exception.localizedMessage)
-                            .setSmallIcon(R.drawable.ic_launcher_foreground)
-                            .build()
+                        results.add(
+                            BackupFormatResult(
+                                format,
+                                null,
+                                exception
+                            )
+                        )
+                    }
+                }
 
-                        val manager = getSystemService(NotificationManager::class.java)
-                        manager.notify(getNotificationId(), endNotification)
+                val (successfulResults, unsuccessfulResults) = results.partition { it.isSuccess() }
+
+                val unsuccessfulMessage =
+                    unsuccessfulResults.joinToString("\n") { "${it.format.value}: ${it.exception?.localizedMessage ?: "Unknown error"}" }
+
+                if (successfulResults.isEmpty()) {
+                    val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
+                        .setContentTitle(getString(R.string.backup_failed))
+                        .setContentText(unsuccessfulMessage)
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .build()
+
+                    val manager = getSystemService(NotificationManager::class.java)
+                    manager.notify(getNotificationId(), endNotification)
+                } else {
+                    val firstUri = successfulResults.first().file?.uri
+                    val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
+                        putExtra("uri", firstUri.toString())
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+
+                    val notificationId = getNotificationId()
+
+                    val pendingIntent = PendingIntent.getActivity(
+                        this,
+                        notificationId,
+                        mainActivityIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+
+                    val successfulTitle =
+                        getString(
+                            R.string.backup_done_title, appsCount.toString(), type,
+                            successfulResults.joinToString(", ") { it.format.value })
+                    var successfulText = getString(
+                        R.string.backup_done_text,
+                        userAppsCount.toString(),
+                        systemAppsCount.toString()
+                    )
+                    if (unsuccessfulMessage.isNotEmpty()) {
+                        successfulText += "\n${getString(R.string.failed)}:\n${unsuccessfulMessage}"
+                    }
+
+                    val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
+                        .setContentTitle(successfulTitle)
+                        .setContentText(successfulText)
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .setContentIntent(pendingIntent)
+                        .build()
+
+                    val manager = getSystemService(NotificationManager::class.java)
+                    manager.notify(notificationId, endNotification)
+
+                    if (onCompleteCallback != null && firstUri != null) {
+                        onCompleteCallback?.let { it(firstUri) }
+                        onCompleteCallback = null
                     }
                 }
             } catch (exception: Exception) {

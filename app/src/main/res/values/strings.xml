@@ -112,7 +112,7 @@
     <string name="file_create_failed">Unable to create backup file.</string>
     <string name="automatic">Automatic</string>
     <string name="manual">Manual</string>
-    <string name="backup_done_title">Backup done for %1$s apps (%2$s)</string>
+    <string name="backup_done_title">Backup done for %1$s apps (%2$s) in %3$s</string>
     <string name="backup_done_text">%1$s users apps and %2$s system apps.</string>
     <string name="name_title">Name</string>
     <string name="package_title">Package</string>
@@ -177,4 +177,5 @@
     <string name="select_all">Select all</string>
     <string name="deselect_all">Deselect all</string>
     <string name="no_formats_error">"Please select at least one format"</string>
+    <string name="failed">Failed</string>
 </resources>
