@@ -24,6 +24,11 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toFile
 import androidx.documentfile.provider.DocumentFile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import org.androidlabs.applistbackup.data.BackupAppDetails
 import org.androidlabs.applistbackup.data.BackupAppInfo
 import org.androidlabs.applistbackup.data.BackupFormat
@@ -49,11 +54,16 @@ data class BackupFile(
 class BackupService : Service() {
     private val tag: String = "BackupService"
 
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
+
     companion object {
         const val SERVICE_CHANNEL_ID = "BackupService"
         const val BACKUP_CHANNEL_ID = "Backup"
 
         const val FILE_NAME_PREFIX = "app-list-backup-"
+
+        val isRunning = MutableStateFlow(false)
 
         private var onCompleteCallback: ((Uri) -> Unit)? = null
 
@@ -224,9 +234,23 @@ class BackupService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(tag, "start: ${intent.toString()}")
-        val startDate = Date()
+
         val source = intent?.getStringExtra("source")
         val inputFormat = intent?.getStringExtra("format")
+
+        serviceScope.launch {
+            performBackup(source, inputFormat)
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
+
+        return START_STICKY
+    }
+
+    private fun performBackup(source: String?, inputFormat: String?) {
+        isRunning.value = true
+
+        val startDate = Date()
         createNotificationChannels()
 
         val backupsDir = getBackupFolder(this)
@@ -712,9 +736,7 @@ class BackupService : Service() {
             manager.notify(getNotificationId(), endNotification)
         }
 
-        stopForeground(STOP_FOREGROUND_REMOVE)
-
-        return START_STICKY
+        isRunning.value = false
     }
 
     private fun getNotificationId(): Int {
@@ -765,6 +787,7 @@ class BackupService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        serviceJob.cancel()
         Log.d(tag, "destroy")
     }
 }

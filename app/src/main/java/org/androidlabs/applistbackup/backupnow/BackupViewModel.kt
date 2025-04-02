@@ -11,6 +11,9 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.androidlabs.applistbackup.BackupFile
@@ -29,6 +32,9 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     private val _backupFiles = MutableLiveData<List<BackupFile>>(emptyList())
     val backupFiles: LiveData<List<BackupFile>> = _backupFiles
 
+    private val _isBackupRunning = MutableStateFlow(false)
+    val isBackupRunning: StateFlow<Boolean> = _isBackupRunning.asStateFlow()
+
     private var backupSettingsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var pollingJob: Job? = null
 
@@ -39,6 +45,12 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
 
         backupSettingsListener =
             Settings.observeBackupUri(getApplication(), ::refreshBackups)
+
+        viewModelScope.launch {
+            BackupService.isRunning.collect { state ->
+                _isBackupRunning.value = state
+            }
+        }
     }
 
     private fun refreshBackups() {

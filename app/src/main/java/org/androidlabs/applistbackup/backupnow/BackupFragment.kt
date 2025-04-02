@@ -18,6 +18,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +83,7 @@ private fun ActivityState(
     val isNotificationEnabled = viewModel.notificationEnabled.observeAsState(initial = false)
     val backupUri = viewModel.backupUri.observeAsState()
     val backupFiles = viewModel.backupFiles.observeAsState(initial = emptyList())
+    val isRunning by viewModel.isBackupRunning.collectAsState()
 
     LaunchedEffect(key1 = true) {
         viewModel.refreshNotificationStatus()
@@ -123,8 +126,11 @@ private fun ActivityState(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (backupUri.value != null) {
-                Button(onClick = runBackup) {
-                    Text(text = stringResource(R.string.backup_now))
+                Button(
+                    onClick = runBackup,
+                    enabled = !isRunning
+                ) {
+                    Text(text = stringResource(if (isRunning) R.string.in_progress else R.string.backup_now))
                 }
 
                 if (backupFiles.value.isNotEmpty()) {
