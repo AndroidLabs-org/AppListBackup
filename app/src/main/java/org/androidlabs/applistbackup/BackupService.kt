@@ -280,9 +280,9 @@ class BackupService : Service() {
                 val outputDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
                 val format =
-                    if (inputFormat != null) BackupFormat.fromString(inputFormat) else Settings.getBackupFormat(
+                    if (inputFormat != null) BackupFormat.fromString(inputFormat) else Settings.getBackupFormats(
                         this
-                    )
+                    ).first()
                 val excludeItems = Settings.getBackupExcludeData(this)
                 val currentDate = Date()
                 val currentTime = dateFormat.format(currentDate)

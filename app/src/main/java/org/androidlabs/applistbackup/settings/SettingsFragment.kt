@@ -15,7 +15,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,7 +33,6 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.core.net.toUri
@@ -47,7 +45,6 @@ import org.androidlabs.applistbackup.docs.DocsViewerActivity
 import org.androidlabs.applistbackup.faq.InstructionsActivity
 import org.androidlabs.applistbackup.settings.data.BackupDataActivity
 import org.androidlabs.applistbackup.settings.tvpicker.TvFolderPickerActivity
-import org.androidlabs.applistbackup.ui.DropdownInput
 import org.androidlabs.applistbackup.utils.Utils.isTV
 import java.io.File
 
@@ -211,7 +208,7 @@ private fun SettingsScreen(
     onBackupDataSettings: () -> Unit,
 ) {
     val backupUri = viewModel.backupUri.observeAsState()
-    val backupFormat = viewModel.backupFormat.observeAsState(initial = BackupFormat.HTML)
+    val backupFormat = viewModel.backupFormats.observeAsState(initial = setOf(BackupFormat.HTML))
 
     val localContext = LocalContext.current
 
@@ -259,11 +256,17 @@ private fun SettingsScreen(
                 )
             },
             rightView = {
-                DropdownInput(
-                    entries = BackupFormat.entries.map { it.value },
-                    value = backupFormat.value.value,
-                    onChange = { viewModel.saveBackupFormat(BackupFormat.fromString(it)) },
-                    modifier = Modifier.width(128.dp)
+                MultiFormatSelector(
+                    selectedFormats = backupFormat.value,
+                    onFormatsChanged = {
+                        viewModel.saveBackupFormats(it)
+                    }
+                )
+            },
+            footerView = {
+                Text(
+                    text = backupFormat.value.joinToString(", "),
+                    fontSize = 12.sp,
                 )
             }
         )

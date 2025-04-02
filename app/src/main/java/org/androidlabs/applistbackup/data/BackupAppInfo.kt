@@ -2,6 +2,7 @@ package org.androidlabs.applistbackup.data
 
 import android.content.Context
 import org.androidlabs.applistbackup.R
+import org.androidlabs.applistbackup.data.BackupAppInfo.entries
 
 enum class BackupAppInfo(val value: String) {
     Package("Package"),

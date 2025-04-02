@@ -175,4 +175,5 @@
     <string name="backup_data_settings">Backup data settings</string>
     <string name="select_all">Select all</string>
     <string name="deselect_all">Deselect all</string>
+    <string name="no_formats_error">"Please select at least one format"</string>
 </resources>
