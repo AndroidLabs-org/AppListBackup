@@ -78,6 +78,13 @@ fun InstructionsIntent(
                 BackupFormat.entries.forEach {
                     ValueRow(title = "Extra (${it.value}):", value = "format:${it.value}")
                 }
+
+                Text(
+                    text = stringResource(
+                        R.string.multiple_formats,
+                        "format:${BackupFormat.HTML.value},${BackupFormat.CSV.value}"
+                    )
+                )
             }
 
             Text(text = stringResource(R.string.intent_integration_description_2))
@@ -91,6 +98,13 @@ fun InstructionsIntent(
                         value = "--es format ${it.value}"
                     )
                 }
+
+                Text(
+                    text = stringResource(
+                        R.string.multiple_formats,
+                        "--es format ${BackupFormat.HTML.value},${BackupFormat.CSV.value}"
+                    )
+                )
             }
 
             Text(

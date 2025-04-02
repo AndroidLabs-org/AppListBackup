@@ -23,7 +23,7 @@
         3. Choose the \'App\' category and select \'Launch App\'.\n
         4. Press and hold \'%1$s\'.\n
         5. Choose \'RunBackupActivity\'.\n
-        6. In the Data field, enter \'%%format=HTML\', \'%%format=CSV\', or \'%%format=Markdown\' for your preferred format (System format will be used if not specified).\n
+        6. In the Data field, enter \'%%format=HTML\', \'%%format=CSV\', or \'%%format=Markdown\' for your preferred format (System format will be used if not specified). Multiple formats can be used together if needed, separated by commas (e.g., \'%%format=HTML,CSV\').\n
         7. Press the back button on your device or use the back navigation button on the top-left corner of the screen to return to the main Action Edit screen.\n
         8. Configure any additional parameters of the task as needed.\n
         9. Save and activate the profile to automate backups.
@@ -80,10 +80,11 @@
             - Action: &quot;%1$s&quot;\n
             - Package: &quot;%2$s&quot;\n
             - Target: &quot;Broadcast Receiver&quot;\n
-            - Optionally, add Extra \'format:HTML\', \'format:CSV\', or \'format:Markdown\'  for your preferred format\n
+            - Optionally, add Extra \'format:HTML\', \'format:CSV\', or \'format:Markdown\' for your preferred format. Multiple formats can be used together if needed, separated by commas (e.g., \'format:HTML,CSV\').\n
         5. Press back to save the task and activate the profile.
     </string>
     <string name="optionally">Optionally</string>
+    <string name="multiple_formats">Multiple formats can be used together, separated by commas (e.g., %1$s)</string>
     <string name="loading">Loading…</string>
     <string name="error_message">Error: %1$s</string>
     <string name="wrong_file">Please select a backup file created by this application</string>
