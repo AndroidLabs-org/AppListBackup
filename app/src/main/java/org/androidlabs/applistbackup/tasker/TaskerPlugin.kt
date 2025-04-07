@@ -12,7 +12,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.Button
-import android.widget.FrameLayout
+import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -31,12 +31,38 @@ import org.androidlabs.applistbackup.data.BackupFormat
 
 enum class TaskerBackupFormat(val value: String) {
     System("System"),
-    HTML(BackupFormat.HTML.value),
-    Markdown(BackupFormat.Markdown.value);
+    Custom("Custom");
 
     companion object {
         fun fromString(value: String): TaskerBackupFormat {
-            return TaskerBackupFormat.entries.find { it.value == value } as TaskerBackupFormat
+            return if (value.contains(",") || value == BackupFormat.HTML.value ||
+                value == BackupFormat.CSV.value || value == BackupFormat.Markdown.value
+            ) {
+                Custom
+            } else {
+                TaskerBackupFormat.entries.find { it.value == value } ?: System
+            }
+        }
+
+        fun isSystem(value: String): Boolean {
+            return value == System.value
+        }
+
+        fun getSelectedFormats(value: String): List<String> {
+            return if (isSystem(value)) {
+                emptyList()
+            } else {
+                // TODO: validation
+                value.split(",").filter { it.isNotEmpty() }
+            }
+        }
+
+        fun formatFromSelected(formats: List<String>): String {
+            return if (formats.isEmpty()) {
+                System.value
+            } else {
+                formats.joinToString(",")
+            }
         }
     }
 }
@@ -58,6 +84,9 @@ class TaskerPlugin : Activity(), TaskerPluginConfig<BackupFormatInput> {
     override val context: Context get() = applicationContext
     private val helper by lazy { PluginHelper(this) }
     private lateinit var formatGroup: RadioGroup
+    private lateinit var formatsContainer: LinearLayout
+    private lateinit var saveButton: Button
+    private val formatCheckboxes = mutableMapOf<String, CheckBox>()
     private val formatButtonIds = mutableMapOf<TaskerBackupFormat, Int>()
 
     private var currentInput: TaskerInput<BackupFormatInput>? = null
@@ -71,47 +100,80 @@ class TaskerPlugin : Activity(), TaskerPluginConfig<BackupFormatInput> {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (intent?.action == "com.twofortyfouram.locale.intent.action.EDIT_SETTING") {
+            val bundle = intent?.getBundleExtra("com.twofortyfouram.locale.intent.extra.BUNDLE")
+
+            if (bundle != null) {
+                val formatValue = bundle.getString("format", "")
+                currentInput = TaskerInput(BackupFormatInput(format = formatValue))
+            }
+        }
+
         setContentView(R.layout.tasker_layout)
 
-        val container = findViewById<LinearLayout>(R.id.container)
-        createFormatGroup(container)
+        val isDarkMode =
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+        val backgroundColor = context.getColor(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                if (isDarkMode) android.R.color.system_surface_dark else android.R.color.system_surface_light
+            } else {
+                if (isDarkMode) android.R.color.background_dark else android.R.color.background_light
+            }
+        )
+
+        val textColor = context.getColor(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                if (isDarkMode) android.R.color.system_on_surface_dark else android.R.color.system_on_surface_light
+            } else {
+                if (isDarkMode) android.R.color.primary_text_dark else android.R.color.primary_text_light
+            }
+        )
+
+        findViewById<LinearLayout>(R.id.container).setBackgroundColor(backgroundColor)
+
+        val container = findViewById<LinearLayout>(R.id.format_container)
+        saveButton = findViewById(R.id.save_button)
+
+        createFormatGroup(container, textColor)
 
         findViewById<Button>(R.id.cancel_button).setOnClickListener {
             setResult(RESULT_CANCELED)
             finish()
         }
 
-        findViewById<Button>(R.id.save_button).setOnClickListener {
+        saveButton.setOnClickListener {
             helper.finishForTasker()
         }
+
+        val savedInput = currentInput?.regular ?: BackupFormatInput()
+        updateFormatCheckboxesVisibility(TaskerBackupFormat.fromString(savedInput.format) == TaskerBackupFormat.Custom)
+
+        updateSaveButtonState()
     }
 
-    private fun createFormatGroup(container: LinearLayout) {
-        val isDarkMode =
-            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-
-        val textColor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            if (isDarkMode) android.R.color.system_on_surface_dark else android.R.color.system_on_surface_light
-        } else {
-            if (isDarkMode) android.R.color.primary_text_dark else android.R.color.primary_text_light
-        }
-        val backgroundColor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            if (isDarkMode) android.R.color.system_surface_dark else android.R.color.system_surface_light
-        } else {
-            if (isDarkMode) android.R.color.background_dark else android.R.color.background_light
-        }
-
-        container.setBackgroundColor(context.getColor(backgroundColor))
-
+    private fun createFormatGroup(container: LinearLayout, textColor: Int) {
         val formatHeader = findViewById<TextView>(R.id.format)
-        formatHeader.setTextColor(context.getColor(textColor))
+        formatHeader.setTextColor(textColor)
 
         formatGroup = RadioGroup(this).apply {
-            orientation = RadioGroup.VERTICAL
+            orientation = RadioGroup.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = 16
+            }
+        }
+
+        formatsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
+            visibility = View.GONE
         }
 
         val states = arrayOf(
@@ -119,8 +181,8 @@ class TaskerPlugin : Activity(), TaskerPluginConfig<BackupFormatInput> {
             intArrayOf(-android.R.attr.state_checked)
         )
         val colors = intArrayOf(
-            context.getColor(textColor),
-            context.getColor(textColor)
+            textColor,
+            textColor
         )
         val colorStateList = ColorStateList(states, colors)
 
@@ -128,22 +190,26 @@ class TaskerPlugin : Activity(), TaskerPluginConfig<BackupFormatInput> {
             val button = RadioButton(this).apply {
                 id = View.generateViewId()
                 text = format.value
-                setTextColor(context.getColor(textColor))
+                setTextColor(textColor)
                 buttonTintList = colorStateList
                 layoutParams = RadioGroup.LayoutParams(
-                    RadioGroup.LayoutParams.MATCH_PARENT,
+                    0,
                     RadioGroup.LayoutParams.WRAP_CONTENT
-                )
+                ).apply {
+                    weight = 1f
+                }
             }
             formatGroup.addView(button)
             formatButtonIds[format] = button.id
         }
 
-        findViewById<FrameLayout>(R.id.format_container).addView(formatGroup)
+        container.addView(formatGroup)
 
-        val loadedFormat = intent?.getStringExtra("format") ?: TaskerBackupFormat.System.value
+        val savedInput = currentInput?.regular ?: BackupFormatInput()
+        val loadedFormat = savedInput.format
+        val selectedBackupFormat = TaskerBackupFormat.fromString(loadedFormat)
 
-        formatButtonIds[TaskerBackupFormat.fromString(loadedFormat)]?.let { buttonId ->
+        formatButtonIds[selectedBackupFormat]?.let { buttonId ->
             formatGroup.check(buttonId)
         }
 
@@ -151,7 +217,68 @@ class TaskerPlugin : Activity(), TaskerPluginConfig<BackupFormatInput> {
             val selectedFormat =
                 formatButtonIds.entries.find { it.value == checkedId }?.key
                     ?: TaskerBackupFormat.System
-            currentInput = TaskerInput(BackupFormatInput(format = selectedFormat.value))
+
+            updateFormatCheckboxesVisibility(selectedFormat == TaskerBackupFormat.Custom)
+
+            val formatValue = if (selectedFormat == TaskerBackupFormat.Custom) {
+                TaskerBackupFormat.formatFromSelected(getSelectedFormats())
+            } else {
+                selectedFormat.value
+            }
+
+            currentInput = TaskerInput(BackupFormatInput(format = formatValue))
+
+            updateSaveButtonState()
+        }
+
+        BackupFormat.entries.forEach { format ->
+            val checkbox = CheckBox(this).apply {
+                text = format.value
+                setTextColor(textColor)
+                buttonTintList = colorStateList
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+
+                setOnCheckedChangeListener { _, _ ->
+                    if (formatGroup.checkedRadioButtonId == formatButtonIds[TaskerBackupFormat.Custom]) {
+                        val selectedFormats = getSelectedFormats()
+                        val formatValue = TaskerBackupFormat.formatFromSelected(selectedFormats)
+                        currentInput = TaskerInput(BackupFormatInput(format = formatValue))
+
+                        updateSaveButtonState()
+                    }
+                }
+            }
+            formatCheckboxes[format.value] = checkbox
+            formatsContainer.addView(checkbox)
+        }
+
+        container.addView(formatsContainer)
+
+        val selectedFormats = TaskerBackupFormat.getSelectedFormats(loadedFormat)
+        selectedFormats.forEach { format ->
+            formatCheckboxes[format]?.isChecked = true
+        }
+    }
+
+    private fun updateFormatCheckboxesVisibility(visible: Boolean) {
+        formatsContainer.visibility = if (visible) View.VISIBLE else View.GONE
+    }
+
+    private fun getSelectedFormats(): List<String> {
+        return formatCheckboxes.filter { it.value.isChecked }.keys.toList()
+    }
+
+    private fun updateSaveButtonState() {
+        val currentFormat =
+            formatButtonIds.entries.find { it.value == formatGroup.checkedRadioButtonId }?.key
+                ?: TaskerBackupFormat.System
+
+        saveButton.isEnabled = when (currentFormat) {
+            TaskerBackupFormat.System -> true
+            TaskerBackupFormat.Custom -> getSelectedFormats().isNotEmpty()
         }
     }
 }
@@ -165,8 +292,11 @@ class PluginRunner : TaskerPluginRunnerActionNoOutput<BackupFormatInput>() {
             Log.d("BackupTaskerPluginRunner", "run $input")
             val intent = Intent(context, BackupService::class.java).apply {
                 putExtra("source", "tasker")
-                BackupFormat.fromStringOptional(input.regular.format)?.let {
-                    putExtra("format", it.value)
+                input.regular.format.let {
+                    val formats = TaskerBackupFormat.getSelectedFormats(it)
+                    if (formats.isNotEmpty()) {
+                        putExtra("format", it)
+                    }
                 }
             }
             context.startForegroundService(intent)
