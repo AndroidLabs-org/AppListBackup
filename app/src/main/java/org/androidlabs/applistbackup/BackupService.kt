@@ -391,7 +391,7 @@ class BackupService : Service() {
     data-install-time="${app.firstInstallTime}"
     data-update-time="${app.lastUpdateTime}"
     data-app-name="${app.name}"
-    data-package-name="$packageName"
+    data-package-name="${app.packageName}"
     data-is-system-app="${app.isSystem}"
     data-is-enabled="${app.isEnabled}"
     data-installer="$installerName"
@@ -399,7 +399,7 @@ class BackupService : Service() {
         <img src="${drawableToBase64(app.icon)}" alt="${app.name}">
         <div class="app-details">
             <strong class="app-name">${app.name}</strong><br>
-            ${if (!isPackageExcluded) "<strong>${getString(R.string.package_title)}:</strong> $packageName<br>" else ""}
+            ${if (!isPackageExcluded) "<strong>${getString(R.string.package_title)}:</strong> ${app.packageName}<br>" else ""}
             ${if (!isSystemExcluded) "<strong>${getString(R.string.system_title)}:</strong> ${app.isSystem}<br>" else ""}
             ${if (!isEnabledExcluded) "<strong>${getString(R.string.enabled_title)}:</strong> ${app.isEnabled}<br>" else ""}
             ${if (!isVersionExcluded) "<strong>${getString(R.string.version_title)}:</strong> ${app.versionName} (${app.versionCode})<br>" else ""}
@@ -423,8 +423,8 @@ class BackupService : Service() {
             ${
                                     if (!isLinksExcluded) """
                 <strong>${getString(R.string.links_title)}</strong> (${getString(R.string.links_title_details)}):<br>
-                <a target="_blank" rel="noopener noreferrer" href="https://play.google.com/store/apps/details?id=$packageName">Play Market</a> | 
-                <a target="_blank" rel="noopener noreferrer" href="https://f-droid.org/packages/$packageName">F-Droid</a>
+                <a target="_blank" rel="noopener noreferrer" href="https://play.google.com/store/apps/details?id=${app.packageName}">Play Market</a> | 
+                <a target="_blank" rel="noopener noreferrer" href="https://f-droid.org/packages/${app.packageName}">F-Droid</a>
             """.trimIndent() else ""
                                 }
         </div>
