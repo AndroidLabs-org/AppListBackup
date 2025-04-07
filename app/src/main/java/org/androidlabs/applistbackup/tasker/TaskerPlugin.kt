@@ -52,8 +52,8 @@ enum class TaskerBackupFormat(val value: String) {
             return if (isSystem(value)) {
                 emptyList()
             } else {
-                // TODO: validation
-                value.split(",").filter { it.isNotEmpty() }
+                value.split(",")
+                    .filter { it.isNotEmpty() && BackupFormat.fromStringOptional(it) != null }
             }
         }
 
