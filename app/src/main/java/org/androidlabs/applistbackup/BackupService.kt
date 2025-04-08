@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -19,6 +20,7 @@ import android.os.Build
 import android.os.Environment
 import android.os.IBinder
 import android.provider.DocumentsContract
+import android.system.Os
 import android.util.Base64
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -39,6 +41,7 @@ import org.androidlabs.applistbackup.settings.Settings
 import org.androidlabs.applistbackup.utils.Utils.clearPrefixSlash
 import org.androidlabs.applistbackup.utils.Utils.isTV
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.text.DecimalFormat
@@ -63,7 +66,7 @@ class BackupService : Service() {
         const val SERVICE_CHANNEL_ID = "BackupService"
         const val BACKUP_CHANNEL_ID = "Backup"
 
-        const val FILE_NAME_PREFIX = "app-list-backup-"
+        const val FILE_NAME_PREFIX = "app-list-backup"
 
         val isRunning = MutableStateFlow(false)
 
@@ -140,7 +143,8 @@ class BackupService : Service() {
                             )
                         }
                     }
-                    return files?.map { BackupRawFile.fromFile(it, context) } ?: emptyList()
+                    return files?.map { BackupRawFile.fromFile(it, context) }
+                        ?.sortedByDescending { it.lastModified } ?: emptyList()
                 }
             } else {
                 val backupsDir = DocumentFile.fromTreeUri(context, backupsUri) ?: return emptyList()
@@ -155,6 +159,7 @@ class BackupService : Service() {
                         } == true
                     }
                     return files.map { BackupRawFile.fromDocumentFile(it, context) }
+                        .sortedByDescending { it.lastModified }
                 }
             }
 
@@ -163,14 +168,9 @@ class BackupService : Service() {
 
         fun getLastCreatedFileUri(context: Context): Uri? {
             val files = getRawBackupFiles(context)
-            if (files.isNotEmpty()) {
-                val sortedFiles = files.sortedByDescending { it.lastModified }
-
-                val lastCreatedFile = sortedFiles.firstOrNull()
-
-                if (lastCreatedFile != null) {
-                    return lastCreatedFile.uri
-                }
+            val lastCreatedFile = files.firstOrNull()
+            if (lastCreatedFile != null) {
+                return lastCreatedFile.uri
             }
             return null
         }
@@ -182,38 +182,48 @@ class BackupService : Service() {
                 .map { file ->
                     val name = file.name
                     val dateString = name.removePrefix(FILE_NAME_PREFIX).substringBeforeLast('.')
-                    val date = dateFormat.parse(dateString) ?: Date()
-                    val title = getTitleFromUri(file.uri) ?: name
+                    val date = if (dateString.isNotEmpty()) {
+                        dateFormat.parse(dateString) ?: Date()
+                    } else {
+                        val timestamp = getFileDate(context, file.uri)
+                        Date(timestamp)
+                    }
+                    val title = getTitleFromUri(context, file.uri) ?: name
                     BackupFile(file.uri, date, title)
                 }
-                .sortedByDescending { it.date }
         }
 
-        fun getTitleFromUri(uri: Uri): String? {
+        fun getTitleFromUri(context: Context, uri: Uri): String? {
             val pattern =
-                Pattern.compile("$FILE_NAME_PREFIX(\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2})\\.(\\w+)")
+                Pattern.compile("$FILE_NAME_PREFIX-(\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2})\\.(\\w+)")
             val matcher = pattern.matcher(uri.toString())
 
-            return if (matcher.find()) {
+            val titleFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+
+            val isFind = matcher.find()
+            if (!isFind) {
+                val timestamp = getFileDate(context, uri)
+                val date = titleFormatter.format(Date(timestamp))
+                val extension = uri.toString().split(".").last()
+                val format = extension.let { BackupFormat.fromExtension(it) }
+                return "$date (${format.value})"
+            } else {
                 val dateString = matcher.group(1)
                 val extension = matcher.group(2)
 
                 val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
-                val titleFormatter = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
 
                 val date = dateString?.let { dateFormat.parse(it) }
                 if (date != null) {
                     if (extension != null) {
                         val format = extension.let { BackupFormat.fromExtension(it) }
-                        "${titleFormatter.format(date)} (${format.value})"
+                        return "${titleFormatter.format(date)} (${format.value})"
                     } else {
-                        titleFormatter.format(date)
+                        return titleFormatter.format(date)
                     }
                 } else {
-                    null
+                    return null
                 }
-            } else {
-                null
             }
         }
 
@@ -227,6 +237,48 @@ class BackupService : Service() {
 
             val broadcastIntent = Intent("org.androidlabs.applistbackup.BACKUP_ACTION")
             context.sendBroadcast(broadcastIntent)
+        }
+
+        private fun getFileDate(context: Context, uri: Uri): Long {
+            try {
+                when (uri.scheme) {
+                    ContentResolver.SCHEME_CONTENT -> {
+                        context.contentResolver.query(
+                            uri,
+                            arrayOf(DocumentsContract.Document.COLUMN_LAST_MODIFIED),
+                            null,
+                            null,
+                            null
+                        )?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                val lastModifiedIndex = cursor.getColumnIndex(
+                                    DocumentsContract.Document.COLUMN_LAST_MODIFIED
+                                )
+                                if (lastModifiedIndex != -1) {
+                                    return cursor.getLong(lastModifiedIndex)
+                                }
+                            }
+                        }
+
+                        val fileDescriptor = context.contentResolver.openFileDescriptor(uri, "r")
+                        fileDescriptor?.use {
+                            val stat = Os.fstat(it.fileDescriptor)
+                            return stat.st_mtime * 1000L
+                        }
+                    }
+
+                    ContentResolver.SCHEME_FILE -> {
+                        val file = File(uri.path ?: "")
+                        if (file.exists()) {
+                            return file.lastModified()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("BackupService", "Error getting file date: ${e.message}")
+            }
+
+            return System.currentTimeMillis()
         }
     }
 
@@ -301,6 +353,7 @@ class BackupService : Service() {
                 val excludeItems = Settings.getBackupExcludeData(this)
                 val currentDate = Date()
                 val currentTime = dateFormat.format(currentDate)
+
                 val type =
                     getString(if (source != null && source == "tasker") R.string.automatic else R.string.manual)
 
@@ -387,7 +440,7 @@ class BackupService : Service() {
 
                 formats.forEach { format ->
                     try {
-                        val fileName = "$FILE_NAME_PREFIX$currentTime.${format.fileExtension()}"
+                        val fileName = "$FILE_NAME_PREFIX-$currentTime.${format.fileExtension()}"
                         val newFile = backupsDir.createFile(format.mimeType(), fileName)
 
                         when (format) {
@@ -730,7 +783,40 @@ class BackupService : Service() {
                     val manager = getSystemService(NotificationManager::class.java)
                     manager.notify(getNotificationId(), endNotification)
                 } else {
+                    val backupLimit = Settings.getBackupLimit(this)
+                    val isVersioningDisabled = backupLimit == 1
+
+                    if (isVersioningDisabled) {
+                        successfulResults.forEach {
+                            val newFileName =
+                                "$FILE_NAME_PREFIX.${it.format.fileExtension()}"
+                            it.file?.renameTo(newFileName)?.let { newFile ->
+                                it.file = newFile
+                            }
+                        }
+                    }
+
                     val firstUri = successfulResults.first().file?.uri
+
+                    if (backupLimit > 0) {
+                        val usedFormats = successfulResults.map { it.format }.distinct()
+                        val backups = getRawBackupFiles(this)
+
+                        usedFormats.forEach { format ->
+                            val backupsByFormat = backups.filter {
+                                it.name.endsWith(format.fileExtension())
+                            }
+                            val currentCount = backupsByFormat.count()
+                            if (currentCount > backupLimit) {
+                                val filesToDeleteCount = currentCount - backupLimit
+                                val sortedBackups = backupsByFormat.sortedBy { it.lastModified }
+                                sortedBackups.take(filesToDeleteCount).forEach { backupFile ->
+                                    backupFile.delete()
+                                }
+                            }
+                        }
+                    }
+
                     val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
                         putExtra("uri", firstUri.toString())
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

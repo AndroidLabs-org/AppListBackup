@@ -13,9 +13,17 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -23,16 +31,29 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.core.net.toUri
@@ -209,6 +230,21 @@ private fun SettingsScreen(
 ) {
     val backupUri = viewModel.backupUri.observeAsState()
     val backupFormat = viewModel.backupFormats.observeAsState(initial = setOf(BackupFormat.HTML))
+    val backupLimit = viewModel.backupLimit.observeAsState(initial = -1)
+
+    val isUnlimited = backupLimit.value == -1
+
+    var backupLimitFloat by remember { mutableFloatStateOf(backupLimit.value.toFloat()) }
+
+    val (inputText, setInputText) = remember {
+        mutableStateOf(
+            backupLimitFloat.toInt().toString()
+        )
+    }
+
+    LaunchedEffect(backupLimit) {
+        backupLimitFloat = backupLimit.value.toFloat()
+    }
 
     val localContext = LocalContext.current
 
@@ -270,6 +306,102 @@ private fun SettingsScreen(
                 )
             }
         )
+
+        SettingsRow(
+            title = stringResource(id = R.string.keep_backups),
+            subtitle = null,
+            iconView = {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_history_24),
+                    contentDescription = stringResource(id = R.string.keep_backups),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                )
+            },
+            rightView = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.unlimited))
+
+                    Switch(
+                        checked = isUnlimited,
+                        onCheckedChange = {
+                            val newValue = if (isUnlimited) 1 else -1
+                            setInputText(newValue.toString())
+                            viewModel.saveBackupLimit(newValue)
+                        },
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
+        )
+
+        AnimatedVisibility(visible = !isUnlimited) {
+            val focusManager = LocalFocusManager.current
+
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.backup_limit_description_prefix),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { newValue ->
+                            val newValueInt = newValue.toIntOrNull()
+                            if (newValue.isEmpty() || (newValueInt != null && newValueInt > 0 && newValueInt <= 1000)) {
+                                setInputText(newValue)
+
+                                if (newValueInt != null) {
+                                    val boundedValue = newValueInt.coerceIn(1, 1000)
+                                    backupLimitFloat = boundedValue.toFloat()
+                                    viewModel.saveBackupLimit(boundedValue)
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.width(72.dp),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                setInputText(backupLimitFloat.toInt().toString())
+                                focusManager.clearFocus()
+                            }
+                        ),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            textAlign = TextAlign.Center
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = 0.3f
+                            )
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = stringResource(R.string.backup_limit_description_suffix),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = stringResource(R.string.backup_limit_note),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
 
         SettingsRow(
             title = stringResource(id = R.string.backup_data_settings),
