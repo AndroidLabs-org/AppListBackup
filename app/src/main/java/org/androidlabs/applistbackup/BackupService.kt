@@ -34,9 +34,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.androidlabs.applistbackup.data.BackupAppDetails
 import org.androidlabs.applistbackup.data.BackupAppInfo
+import org.androidlabs.applistbackup.data.BackupFile
 import org.androidlabs.applistbackup.data.BackupFormat
 import org.androidlabs.applistbackup.data.BackupFormatResult
 import org.androidlabs.applistbackup.data.BackupRawFile
+import org.androidlabs.applistbackup.data.FileInfo
 import org.androidlabs.applistbackup.settings.Settings
 import org.androidlabs.applistbackup.utils.Utils.clearPrefixSlash
 import org.androidlabs.applistbackup.utils.Utils.isTV
@@ -49,12 +51,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
-
-data class BackupFile(
-    val uri: Uri,
-    val date: Date,
-    val title: String
-)
 
 class BackupService : Service() {
     private val tag: String = "BackupService"
@@ -178,22 +174,52 @@ class BackupService : Service() {
         fun getBackupFiles(context: Context): List<BackupFile> {
             val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
 
-            return getRawBackupFiles(context)
+            val files = getRawBackupFiles(context)
+
+            val infos = files
                 .map { file ->
                     val name = file.name
                     val dateString = name.removePrefix(FILE_NAME_PREFIX).substringBeforeLast('.')
-                    val date = if (dateString.isNotEmpty()) {
-                        dateFormat.parse(dateString) ?: Date()
-                    } else {
-                        val timestamp = getFileDate(context, file.uri)
-                        Date(timestamp)
+                    val date = try {
+                        if (dateString.isNotEmpty()) {
+                            dateFormat.parse(dateString) ?: Date()
+                        } else {
+                            val timestamp = getFileDate(context, file.uri)
+                            Date(timestamp)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("BackupService", "Error parsing date: ${e.message}")
+                        Date()
                     }
-                    val title = getTitleFromUri(context, file.uri) ?: name
-                    BackupFile(file.uri, date, title)
+
+                    getFileInfoFromUri(context, file.uri) ?: FileInfo(
+                        file.uri,
+                        name,
+                        name.substringAfterLast("."),
+                        date
+                    )
                 }
+
+            val filesByGeneration = infos
+                .groupBy { dateFormat.format(it.date) }
+                .toSortedMap(reverseOrder())
+
+            val generationsCount = filesByGeneration.size
+
+            return filesByGeneration.values.flatMapIndexed { generationNumber, filesInGeneration ->
+                filesInGeneration.map { info ->
+                    BackupFile(
+                        info.uri,
+                        info.date,
+                        info.name,
+                        generationNumber,
+                        generationsCount
+                    )
+                }
+            }.sortedByDescending { it.date }
         }
 
-        fun getTitleFromUri(context: Context, uri: Uri): String? {
+        fun getFileInfoFromUri(context: Context, uri: Uri): FileInfo? {
             val pattern =
                 Pattern.compile("$FILE_NAME_PREFIX-(\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2})\\.(\\w+)")
             val matcher = pattern.matcher(uri.toString())
@@ -203,10 +229,11 @@ class BackupService : Service() {
             val isFind = matcher.find()
             if (!isFind) {
                 val timestamp = getFileDate(context, uri)
-                val date = titleFormatter.format(Date(timestamp))
+                val date = Date(timestamp)
+                val formattedDate = titleFormatter.format(date)
                 val extension = uri.toString().split(".").last()
                 val format = extension.let { BackupFormat.fromExtension(it) }
-                return "$date (${format.value})"
+                return FileInfo(uri, "$formattedDate (${format.value})", format.value, date)
             } else {
                 val dateString = matcher.group(1)
                 val extension = matcher.group(2)
@@ -217,9 +244,14 @@ class BackupService : Service() {
                 if (date != null) {
                     if (extension != null) {
                         val format = extension.let { BackupFormat.fromExtension(it) }
-                        return "${titleFormatter.format(date)} (${format.value})"
+                        return FileInfo(
+                            uri,
+                            "${titleFormatter.format(date)} (${format.value})",
+                            format.value,
+                            date
+                        )
                     } else {
-                        return titleFormatter.format(date)
+                        return FileInfo(uri, titleFormatter.format(date), "", date)
                     }
                 } else {
                     return null

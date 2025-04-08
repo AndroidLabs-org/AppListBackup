@@ -1,6 +1,5 @@
 package org.androidlabs.applistbackup.reader
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -90,7 +91,7 @@ class BackupReaderFragment(
     ): View {
         return ComposeView(requireContext()).apply {
             setContent {
-                DisplayHtmlContent(
+                DisplayContent(
                     viewModel = viewModel,
                     runBackup = ::runBackup
                 )
@@ -122,15 +123,16 @@ class BackupReaderFragment(
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun DisplayHtmlContent(
+private fun DisplayContent(
     viewModel: BackupViewModel,
     runBackup: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
 
     val uri by viewModel.uri.collectAsState()
     val backups by viewModel.backupFiles.collectAsState(initial = emptyList())
@@ -140,14 +142,21 @@ private fun DisplayHtmlContent(
         val extension = uri.toString().substringAfterLast('.', "").lowercase()
         val format = BackupFormat.fromExtension(extension)
 
+        val uriBackup = remember(uri, backups) {
+            backups.find { backup -> backup.uri == uri }
+        }
+
+        val title = uriBackup?.titleWithGeneration()
+            ?: (BackupService.getFileInfoFromUri(context, uri!!)?.name
+                ?: stringResource(R.string.backup))
+
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(start = 16.dp, end = 4.dp)
             ) {
                 Text(
-                    text = BackupService.getTitleFromUri(context, uri!!)
-                        ?: stringResource(R.string.backup),
+                    text = title,
                     modifier = Modifier
                         .weight(1f)
                 )
@@ -162,11 +171,13 @@ private fun DisplayHtmlContent(
 
                     DropdownMenu(
                         expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier
+                            .heightIn(max = screenHeight * 0.75f)
                     ) {
                         backups.forEach { backup ->
                             DropdownMenuItem(text = {
-                                Text(backup.title)
+                                Text(backup.titleWithGeneration())
                             }, onClick = {
                                 expanded = false
                                 viewModel.setUri(context, backup.uri)

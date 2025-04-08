@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.androidlabs.applistbackup.BackupFile
 import org.androidlabs.applistbackup.BackupService
+import org.androidlabs.applistbackup.data.BackupFile
 import org.androidlabs.applistbackup.settings.Settings
 
 class BackupViewModel(application: Application) : AndroidViewModel(application) {
