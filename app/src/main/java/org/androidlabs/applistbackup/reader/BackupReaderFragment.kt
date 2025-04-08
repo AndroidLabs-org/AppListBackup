@@ -34,9 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -65,24 +63,21 @@ class BackupReaderFragment(
         super.onDestroy()
     }
 
-    fun loadLastBackup() {
-        viewModel.viewModelScope.launch(Dispatchers.IO) {
-            val lastUri = BackupService.getLastCreatedFileUri(requireContext())
-            lastUri?.let {
-                withContext(Dispatchers.Main) {
-                    viewModel.setUri(requireContext(), it)
-                }
-            }
-        }
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            launch {
                 mainActivityViewModel.uri.collect { uri ->
                     uri?.let {
                         viewModel.setUri(requireContext(), it)
+                    }
+                }
+            }
+
+            launch {
+                BackupService.isRunning.collect { running ->
+                    if (!running) {
+                        loadLastBackup()
                     }
                 }
             }
@@ -99,6 +94,18 @@ class BackupReaderFragment(
                     viewModel = viewModel,
                     runBackup = ::runBackup
                 )
+            }
+        }
+    }
+
+
+    private fun loadLastBackup() {
+        viewModel.viewModelScope.launch(Dispatchers.IO) {
+            val lastUri = BackupService.getLastCreatedFileUri(requireContext())
+            lastUri?.let {
+                withContext(Dispatchers.Main) {
+                    viewModel.setUri(requireContext(), it)
+                }
             }
         }
     }
@@ -139,7 +146,7 @@ private fun DisplayHtmlContent(
                 modifier = Modifier.padding(start = 16.dp, end = 4.dp)
             ) {
                 Text(
-                    text = BackupService.getTitleFromUri(uri!!)
+                    text = BackupService.getTitleFromUri(context, uri!!)
                         ?: stringResource(R.string.backup),
                     modifier = Modifier
                         .weight(1f)

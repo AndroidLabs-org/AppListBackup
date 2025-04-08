@@ -14,6 +14,7 @@ object Settings {
     private const val KEY_BACKUP_URI: String = "backup_uri"
     private const val KEY_BACKUP_FORMATS: String = "backup_formats"
     private const val KEY_BACKUP_EXCLUDE_DATA: String = "backup_exclude_data"
+    private const val KEY_BACKUP_LIMIT: String = "backup_limit"
 
     fun getBackupUri(context: Context): Uri? {
         val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
@@ -55,6 +56,18 @@ object Settings {
         val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
         sharedPreferences.edit {
             putString(KEY_BACKUP_EXCLUDE_DATA, list.joinToString(",") { it.value })
+        }
+    }
+
+    fun getBackupLimit(context: Context): Int {
+        val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
+        return sharedPreferences.getInt(KEY_BACKUP_LIMIT, -1)
+    }
+
+    fun setBackupLimit(context: Context, value: Int) {
+        val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
+        sharedPreferences.edit {
+            putInt(KEY_BACKUP_LIMIT, value)
         }
     }
 

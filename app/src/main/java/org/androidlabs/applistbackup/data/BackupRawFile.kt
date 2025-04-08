@@ -63,6 +63,86 @@ class BackupRawFile private constructor(
         }
     }
 
+    fun delete(): Boolean {
+        return when {
+            documentFile != null -> {
+                try {
+                    documentFile.delete()
+                } catch (e: Exception) {
+                    Log.e("BackupService", "DocumentFile delete failed: $e")
+                    false
+                }
+            }
+
+            file != null -> {
+                try {
+                    file.delete()
+                } catch (e: Exception) {
+                    Log.e("BackupService", "File delete failed: $e")
+                    false
+                }
+            }
+
+            else -> throw IllegalStateException("Neither file nor documentFile is available")
+        }
+    }
+
+    fun renameTo(newName: String): BackupRawFile? {
+        return when {
+            documentFile != null -> {
+                try {
+                    val parent = documentFile.parentFile
+                    val existingFile = parent?.listFiles()?.find { it.name == newName }
+
+                    if (existingFile != null) {
+                        if (!existingFile.delete()) {
+                            Log.e(
+                                "BackupService",
+                                "Could not delete existing DocumentFile: ${existingFile.uri}"
+                            )
+                            return null
+                        }
+                    }
+
+                    if (documentFile.renameTo(newName)) {
+                        fromDocumentFile(documentFile, context)
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    Log.e("BackupService", "DocumentFile rename failed: $e")
+                    null
+                }
+            }
+
+            file != null -> {
+                try {
+                    val destination = File(file.parentFile, newName)
+                    if (destination.exists()) {
+                        if (!destination.delete()) {
+                            Log.e(
+                                "BackupService",
+                                "Could not delete existing file: ${destination.absolutePath}"
+                            )
+                            return null
+                        }
+                    }
+
+                    if (file.renameTo(destination)) {
+                        fromFile(destination, context)
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    Log.e("BackupService", "File rename failed: $e")
+                    null
+                }
+            }
+
+            else -> throw IllegalStateException("Neither file nor documentFile is available")
+        }
+    }
+
     companion object {
         fun fromFile(file: File, context: Context) = BackupRawFile(file, null, context)
 

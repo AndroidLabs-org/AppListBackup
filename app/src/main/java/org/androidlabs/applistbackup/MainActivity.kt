@@ -78,7 +78,7 @@ class MainActivity : FragmentActivity() {
     private var browseFragment: BackupReaderFragment? = null
     private var settingsFragment: SettingsFragment? = null
 
-    private val pickHtmlFile =
+    private val pickFile =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             uri?.let {
                 val contentResolver = contentResolver
@@ -173,7 +173,14 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun onBrowse() {
-        pickHtmlFile.launch(arrayOf("text/html"))
+        val types = BackupFormat.entries.map { it.mimeType() }.plus(
+            listOf(
+                "application/csv",
+                "application/vnd.ms-excel",
+                "text/comma-separated-values"
+            )
+        )
+        pickFile.launch(types.toTypedArray())
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -395,7 +402,6 @@ private fun MainScreen(
                         backupContainer.visibility = View.GONE
                         browseContainer.visibility = View.VISIBLE
                         settingsContainer.visibility = View.GONE
-                        getBrowseFragment().loadLastBackup()
                     }
 
                     Screen.Settings.route -> {

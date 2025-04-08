@@ -14,9 +14,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _backupUri: MutableLiveData<Uri?> = MutableLiveData(loadBackupUri())
     private val _backupFormat: MutableLiveData<Set<BackupFormat>> =
         MutableLiveData(loadBackupFormats())
+    private val _backupLimit: MutableLiveData<Int> =
+        MutableLiveData(loadBackupLimit())
 
     val backupUri: LiveData<Uri?> get() = _backupUri
     val backupFormats: LiveData<Set<BackupFormat>> get() = _backupFormat
+    val backupLimit: LiveData<Int> get() = _backupLimit
 
     private fun loadBackupUri(): Uri? {
         return Settings.getBackupUri(getApplication())
@@ -26,9 +29,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         return Settings.getBackupFormats(getApplication())
     }
 
+    private fun loadBackupLimit(): Int {
+        return Settings.getBackupLimit(getApplication())
+    }
+
     fun refresh() {
         _backupUri.postValue(loadBackupUri())
         _backupFormat.postValue(loadBackupFormats())
+        _backupLimit.postValue(loadBackupLimit())
     }
 
     fun saveBackupUri(uri: Uri) {
@@ -42,6 +50,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             Settings.setBackupFormats(getApplication(), format)
             _backupFormat.postValue(format)
+        }
+    }
+
+    fun saveBackupLimit(value: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            Settings.setBackupLimit(getApplication(), value)
+            _backupLimit.postValue(value)
         }
     }
 }

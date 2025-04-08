@@ -12,13 +12,11 @@ import androidx.core.net.toFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.androidlabs.applistbackup.BackupFile
@@ -39,13 +37,20 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     val installedPackages: StateFlow<List<String>> = _installedPackages.asStateFlow()
 
     private var backupSettingsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
-    private var pollingJob: Job? = null
 
     private val viewModelSupervisorJob = SupervisorJob()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             initializeViewModel()
+        }
+
+        viewModelScope.launch {
+            BackupService.isRunning.collect { state ->
+                if (!state) {
+                    updateBackupFiles()
+                }
+            }
         }
     }
 
@@ -58,7 +63,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                     context = getApplication(),
                     onChangeBackupUri = {
                         viewModelScope.launch(Dispatchers.IO) {
-                            refreshBackups()
+                            updateBackupFiles()
                             val lastUri = BackupService.getLastCreatedFileUri(getApplication())
                             _uri.value = lastUri
                         }
@@ -66,7 +71,7 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
                 )
             }
 
-            refreshBackups()
+            updateBackupFiles()
         }
     }
 
@@ -110,30 +115,6 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private fun refreshBackups() {
-        initializeFileObserver()
-        updateBackupFiles()
-    }
-
-    private fun initializeFileObserver() {
-        pollingJob?.cancel()
-
-        pollingJob = viewModelScope.launch(Dispatchers.IO + viewModelSupervisorJob) {
-            while (isActive) {
-                try {
-                    val files = BackupService.getBackupFiles(getApplication())
-                    val currentCount = _backupFiles.value.size
-
-                    if (files.size != currentCount) {
-                        _backupFiles.value = files
-                    }
-                } catch (e: Exception) {
-                    Log.e(tag, e.toString())
-                }
-            }
-        }
-    }
-
     private fun updateBackupFiles() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -148,7 +129,6 @@ class BackupViewModel(application: Application) : AndroidViewModel(application) 
     override fun onCleared() {
         super.onCleared()
         viewModelSupervisorJob.cancelChildren()
-        pollingJob?.cancel()
         backupSettingsListener?.let {
             Settings.unregisterListener(getApplication(), it)
         }

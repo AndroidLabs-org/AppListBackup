@@ -101,6 +101,9 @@
     <string name="view_backups">View backups</string>
     <string name="destination_not_set">Please select a backup folder\nin Settings to begin using the app.</string>
     <string name="destination">Backup destination</string>
+    <string name="keep_backups">Keep backups</string>
+    <string name="unlimited">Unlimited</string>
+    <string name="backup_limit_description">The %d most recent backups will be kept</string>
     <string name="choose">Choose</string>
     <string name="change">Change</string>
     <string name="faq">FAQ</string>
@@ -176,6 +179,9 @@
     <string name="backup_data_settings">Backup data settings</string>
     <string name="select_all">Select all</string>
     <string name="deselect_all">Deselect all</string>
-    <string name="no_formats_error">"Please select at least one format"</string>
+    <string name="backup_limit_description_prefix">The</string>
+    <string name="backup_limit_description_suffix">most recent backups will be kept</string>
+    <string name="backup_limit_note">Important: Older backups will be automatically deleted when the limit is reached.</string>
+    <string name="no_formats_error">Please select at least one format</string>
     <string name="failed">Failed</string>
 </resources>
