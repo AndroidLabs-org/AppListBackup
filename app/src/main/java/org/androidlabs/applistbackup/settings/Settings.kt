@@ -4,39 +4,42 @@ import android.app.Service.MODE_PRIVATE
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import org.androidlabs.applistbackup.data.BackupAppInfo
 import org.androidlabs.applistbackup.data.BackupFormat
 
 object Settings {
     private const val PREFERENCES_FILE: String = "preferences"
     private const val KEY_BACKUP_URI: String = "backup_uri"
-    private const val KEY_BACKUP_FORMAT: String = "backup_format"
+    private const val KEY_BACKUP_FORMATS: String = "backup_formats"
     private const val KEY_BACKUP_EXCLUDE_DATA: String = "backup_exclude_data"
 
     fun getBackupUri(context: Context): Uri? {
         val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
-        val uriString = sharedPreferences.getString(KEY_BACKUP_URI, null)
-        return if (uriString != null) Uri.parse(uriString) else null
+        return sharedPreferences.getString(KEY_BACKUP_URI, null)?.toUri()
     }
 
     fun setBackupUri(context: Context, uri: Uri) {
         val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.putString(KEY_BACKUP_URI, uri.toString())
-        editor.apply()
+        sharedPreferences.edit {
+            putString(KEY_BACKUP_URI, uri.toString())
+        }
     }
 
-    fun getBackupFormat(context: Context): BackupFormat {
+    fun getBackupFormats(context: Context): Set<BackupFormat> {
         val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
-        val formatString = sharedPreferences.getString(KEY_BACKUP_FORMAT, null)
-        return if (formatString != null) BackupFormat.fromString(formatString) else BackupFormat.HTML
+        val formatString = sharedPreferences.getString(KEY_BACKUP_FORMATS, null)
+        return formatString?.split(",")?.map { BackupFormat.fromString(it) }?.toSet() ?: setOf(
+            BackupFormat.HTML
+        )
     }
 
-    fun setBackupFormat(context: Context, format: BackupFormat) {
+    fun setBackupFormats(context: Context, formats: Set<BackupFormat>) {
         val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.putString(KEY_BACKUP_FORMAT, format.value)
-        editor.apply()
+        sharedPreferences.edit {
+            putString(KEY_BACKUP_FORMATS, formats.joinToString(",") { it.value })
+        }
     }
 
     fun getBackupExcludeData(context: Context): List<BackupAppInfo> {
@@ -50,9 +53,9 @@ object Settings {
 
     fun setBackupExcludeData(context: Context, list: List<BackupAppInfo>) {
         val sharedPreferences = context.getSharedPreferences(PREFERENCES_FILE, MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.putString(KEY_BACKUP_EXCLUDE_DATA, list.map { it.value }.joinToString(","))
-        editor.apply()
+        sharedPreferences.edit {
+            putString(KEY_BACKUP_EXCLUDE_DATA, list.joinToString(",") { it.value })
+        }
     }
 
     fun observeBackupUri(

@@ -22,6 +22,7 @@ import android.provider.DocumentsContract
 import android.util.Base64
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toFile
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +33,7 @@ import kotlinx.coroutines.launch
 import org.androidlabs.applistbackup.data.BackupAppDetails
 import org.androidlabs.applistbackup.data.BackupAppInfo
 import org.androidlabs.applistbackup.data.BackupFormat
+import org.androidlabs.applistbackup.data.BackupFormatResult
 import org.androidlabs.applistbackup.data.BackupRawFile
 import org.androidlabs.applistbackup.settings.Settings
 import org.androidlabs.applistbackup.utils.Utils.clearPrefixSlash
@@ -279,15 +281,26 @@ class BackupService : Service() {
                 val dateFormat = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
                 val outputDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
-                val format =
-                    if (inputFormat != null) BackupFormat.fromString(inputFormat) else Settings.getBackupFormat(
+                val formats = if (inputFormat != null) {
+                    val values = inputFormat.split(",")
+                    val filtered = values.map {
+                        try {
+                            BackupFormat.fromString(it)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }.filterIsInstance<BackupFormat>()
+                        .toSet()
+                    if (filtered.isEmpty()) setOf(BackupFormat.HTML) else filtered
+                } else {
+                    Settings.getBackupFormats(
                         this
                     )
+                }
+
                 val excludeItems = Settings.getBackupExcludeData(this)
                 val currentDate = Date()
                 val currentTime = dateFormat.format(currentDate)
-                val fileName = "$FILE_NAME_PREFIX$currentTime.${format.fileExtension()}"
-                val newFile = backupsDir.createFile(format.mimeType(), fileName)
                 val type =
                     getString(if (source != null && source == "tasker") R.string.automatic else R.string.manual)
 
@@ -370,23 +383,31 @@ class BackupService : Service() {
                 val userAppsCount = appsCount - systemAppsCount
                 val disabledAppsCount = appsCount - enabledAppsCount
 
-                when (format) {
-                    BackupFormat.HTML -> {
-                        val template =
-                            assets.open("template.html").bufferedReader().use { it.readText() }
-                        val appItems = StringBuilder()
-                        val installerItems = StringBuilder()
-                        val installerFilterItems = StringBuilder()
-                        val installerFilterData = StringBuilder()
-                        val appsByInstallerCount = mutableMapOf<String, Int>()
+                val results: MutableList<BackupFormatResult> = mutableListOf()
 
-                        apps.forEachIndexed { index, app ->
-                            val installerName = app.installerName
-                            appsByInstallerCount[installerName] =
-                                appsByInstallerCount.getOrPut(installerName) { 0 } + 1
+                formats.forEach { format ->
+                    try {
+                        val fileName = "$FILE_NAME_PREFIX$currentTime.${format.fileExtension()}"
+                        val newFile = backupsDir.createFile(format.mimeType(), fileName)
 
-                            appItems.append(
-                                """
+                        when (format) {
+                            BackupFormat.HTML -> {
+                                val template =
+                                    assets.open("template.html").bufferedReader()
+                                        .use { it.readText() }
+                                val appItems = StringBuilder()
+                                val installerItems = StringBuilder()
+                                val installerFilterItems = StringBuilder()
+                                val installerFilterData = StringBuilder()
+                                val appsByInstallerCount = mutableMapOf<String, Int>()
+
+                                apps.forEachIndexed { index, app ->
+                                    val installerName = app.installerName
+                                    appsByInstallerCount[installerName] =
+                                        appsByInstallerCount.getOrPut(installerName) { 0 } + 1
+
+                                    appItems.append(
+                                        """
     <div class="app-item"
     data-install-time="${app.firstInstallTime}"
     data-update-time="${app.lastUpdateTime}"
@@ -406,306 +427,352 @@ class BackupService : Service() {
             ${if (!isTargetSDKExcluded) "<strong>${getString(R.string.target_sdk_version_title)}:</strong> ${app.targetSdkVersion}<br>" else ""}
             ${if (!isMinSDKExcluded) "<strong>${getString(R.string.min_sdk_version_title)}:</strong> ${app.minSdkVersion}<br>" else ""}
             ${
-                                    if (!isInstalledAtExcluded) "<strong>${getString(R.string.installed_at_title)}:</strong> ${
-                                        outputDateFormat.format(
-                                            Date(app.firstInstallTime)
-                                        )
-                                    }<br>" else ""
-                                }
+                                            if (!isInstalledAtExcluded) "<strong>${getString(R.string.installed_at_title)}:</strong> ${
+                                                outputDateFormat.format(
+                                                    Date(app.firstInstallTime)
+                                                )
+                                            }<br>" else ""
+                                        }
             ${
-                                    if (!isUpdatedAtExcluded) "<strong>${getString(R.string.updated_at_title)}:</strong> ${
-                                        outputDateFormat.format(
-                                            Date(app.lastUpdateTime)
-                                        )
-                                    }<br>" else ""
-                                }
+                                            if (!isUpdatedAtExcluded) "<strong>${getString(R.string.updated_at_title)}:</strong> ${
+                                                outputDateFormat.format(
+                                                    Date(app.lastUpdateTime)
+                                                )
+                                            }<br>" else ""
+                                        }
             ${if (!isInstallSourceExcluded) "<strong>${getString(R.string.installer)}:</strong> $installerName<br>" else ""}
             ${
-                                    if (!isLinksExcluded) """
+                                            if (!isLinksExcluded) """
                 <strong>${getString(R.string.links_title)}</strong> (${getString(R.string.links_title_details)}):<br>
                 <a target="_blank" rel="noopener noreferrer" href="https://play.google.com/store/apps/details?id=${app.packageName}">Play Market</a> | 
                 <a target="_blank" rel="noopener noreferrer" href="https://f-droid.org/packages/${app.packageName}">F-Droid</a>
             """.trimIndent() else ""
-                                }
+                                        }
         </div>
     </div>
 """.trimIndent()
-                            )
-                        }
+                                    )
+                                }
 
-                        appsByInstallerCount.forEach { (installer, count) ->
-                            val filterId = "filter-installer-${
-                                installer.lowercase().replace("\\s".toRegex(), "-")
-                            }"
+                                appsByInstallerCount.forEach { (installer, count) ->
+                                    val filterId = "filter-installer-${
+                                        installer.lowercase().replace("\\s".toRegex(), "-")
+                                    }"
 
-                            installerFilterData.append("\"$filterId\":\"$installer\",")
+                                    installerFilterData.append("\"$filterId\":\"$installer\",")
 
-                            installerFilterItems.append(
-                                """
+                                    installerFilterItems.append(
+                                        """
                         <label>
                             <input type="checkbox" id="$filterId" checked> ${getString(R.string.installed_from)} $installer
                         </label>
                         """.trimIndent()
-                            )
+                                    )
 
-                            installerItems.append(
-                                """
+                                    installerItems.append(
+                                        """
                         <div class="stat-item">
                             <b>$installer</b>
                             <p>$count</p>
                        </div>
                         """.trimIndent()
-                            )
-                        }
-
-                        val durationMillis = Date().time - startDate.time
-                        val durationSeconds = durationMillis / 1000.0
-                        val decimalFormat = DecimalFormat("0.000 ${getString(R.string.seconds)}")
-                        val formattedDuration = decimalFormat.format(durationSeconds)
-
-                        val placeholders = mapOf(
-                            "APP_ITEMS_PLACEHOLDER" to appItems.toString(),
-                            "INSTALLERS_STATISTICS" to installerItems.toString(),
-                            "INSTALLERS_FILTERS_DATA" to installerFilterData.toString(),
-                            "INSTALLERS_FILTERS" to installerFilterItems.toString(),
-                            "BACKUP_TIME_PLACEHOLDER" to outputDateFormat.format(currentDate),
-                            "TRIGGER_TYPE_PLACEHOLDER" to type,
-                            "TOTAL_APPS_COUNT_PLACEHOLDER" to appsCount.toString(),
-                            "USER_APPS_COUNT_PLACEHOLDER" to userAppsCount.toString(),
-                            "SYSTEM_APPS_COUNT_PLACEHOLDER" to systemAppsCount.toString(),
-                            "ENABLED_APPS_COUNT_PLACEHOLDER" to enabledAppsCount.toString(),
-                            "DISABLED_APPS_COUNT_PLACEHOLDER" to disabledAppsCount.toString(),
-                            "BACKUP_DURATION_PLACEHOLDER" to formattedDuration,
-
-                            "LOCALISATION_CREATED_AT" to getString(R.string.created_at),
-                            "LOCALISATION_TRIGGER_TYPE" to getString(R.string.trigger_type),
-                            "LOCALISATION_TOTAL_APPS_COUNT" to getString(R.string.total_apps_count),
-                            "LOCALISATION_USER_APPS_COUNT" to getString(R.string.user_apps_count),
-                            "LOCALISATION_SYSTEM_APPS_COUNT" to getString(R.string.system_apps_count),
-                            "LOCALISATION_ENABLED_APPS_COUNT" to getString(R.string.enabled_apps_count),
-                            "LOCALISATION_DISABLED_APPS_COUNT" to getString(R.string.disabled_apps_count),
-                            "LOCALISATION_INSTALLED_APPS_COUNT" to getString(R.string.installed_apps_count),
-                            "LOCALISATION_UNINSTALLED_APPS_COUNT" to getString(R.string.uninstalled_apps_count),
-                            "LOCALISATION_SEARCH_PLACEHOLDER" to getString(R.string.search_placeholder),
-                            "LOCALISATION_SORT_OPTIONS" to getString(R.string.sort_options),
-                            "LOCALISATION_FILTER_OPTIONS" to getString(R.string.filter_options),
-                            "LOCALISATION_NO_ITEMS_PLACEHOLDER" to getString(R.string.no_items_placeholder),
-                            "LOCALISATION_SORTING" to getString(R.string.sorting),
-                            "LOCALISATION_SORT_BY_DEFAULT" to getString(R.string.sort_by_default),
-                            "LOCALISATION_SORT_BY_INSTALL_TIME" to getString(R.string.sort_by_install_time),
-                            "LOCALISATION_SORT_BY_UPDATE_TIME" to getString(R.string.sort_by_update_time),
-                            "LOCALISATION_SORT_BY_APP_NAME" to getString(R.string.sort_by_app_name),
-                            "LOCALISATION_SORT_BY_PACKAGE_NAME" to getString(R.string.sort_by_package_name),
-                            "LOCALISATION_ORDER" to getString(R.string.order),
-                            "LOCALISATION_ORDER_ASCENDING" to getString(R.string.order_ascending),
-                            "LOCALISATION_ORDER_DESCENDING" to getString(R.string.order_descending),
-                            "LOCALISATION_CLOSE_BUTTON" to getString(R.string.close),
-                            "LOCALISATION_APPS_FILTERING" to getString(R.string.apps_filtering),
-                            "LOCALISATION_USER_APPS" to getString(R.string.user_apps),
-                            "LOCALISATION_SYSTEM_APPS" to getString(R.string.system_apps),
-                            "LOCALISATION_ENABLED_APPS" to getString(R.string.enabled_apps),
-                            "LOCALISATION_DISABLED_APPS" to getString(R.string.disabled_apps),
-                            "LOCALISATION_INSTALLED_APPS" to getString(R.string.installed_apps),
-                            "LOCALISATION_APPLY_FILTERS_BUTTON" to getString(R.string.apply_filters_button),
-                            "LOCALISATION_BACKUP_DURATION" to getString(R.string.backup_duration),
-                            "LOCALISATION_SORT_BY_INSTALLER" to getString(R.string.sort_by_installer_name),
-                            "LOCALISATION_SHOW_MORE" to getString(R.string.show_more),
-                            "LOCALISATION_SHOW_LESS" to getString(R.string.show_less),
-                            "LOCALISATION_INSTALL_SOURCE" to getString(R.string.installer),
-                            "LOCALISATION_APP_STATES" to getString(R.string.app_states),
-                            "LOCALISATION_BACKUP_APPS" to getString(R.string.backup_apps),
-                        )
-
-                        var finalHtml = template
-
-                        placeholders.forEach { (placeholder, value) ->
-                            finalHtml = finalHtml.replace("<!-- $placeholder -->", value)
-                        }
-
-                        if (newFile != null) {
-                            contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
-                                outputStream.write(finalHtml.toByteArray())
-                            }
-                        }
-                    }
-
-                    BackupFormat.CSV -> {
-                        val csvBuilder = StringBuilder()
-
-                        csvBuilder.apply {
-                            append("\"${getString(R.string.name_title)}\"")
-                            if (!isPackageExcluded) append(",\"${getString(R.string.package_title)}\"")
-                            if (!isSystemExcluded) append(",\"${getString(R.string.system_title)}\"")
-                            if (!isEnabledExcluded) append(",\"${getString(R.string.enabled_title)}\"")
-                            if (!isVersionExcluded) append(",\"${getString(R.string.version_title)}\"")
-                            if (!isTargetSDKExcluded) append(",\"${getString(R.string.target_sdk_version_title)}\"")
-                            if (!isMinSDKExcluded) append(",\"${getString(R.string.min_sdk_version_title)}\"")
-                            if (!isInstalledAtExcluded) append(",\"${getString(R.string.installed_at_title)}\"")
-                            if (!isUpdatedAtExcluded) append(",\"${getString(R.string.updated_at_title)}\"")
-                            if (!isInstallSourceExcluded) append(",\"${getString(R.string.installer)}\"")
-                            if (!isLinksExcluded) {
-                                append(",\"${getString(R.string.play_market_title)}\"")
-                                append(",\"${getString(R.string.f_droid_title)}\"")
-                            }
-                            appendLine()
-                        }
-
-                        apps.forEach { app ->
-                            csvBuilder.apply {
-                                append("\"${app.name.toString().replace("\"", "\"\"")}\"")
-                                if (!isPackageExcluded) append(",\"${app.packageName}\"")
-                                if (!isSystemExcluded) append(",\"${app.isSystem}\"")
-                                if (!isEnabledExcluded) append(",\"${app.isEnabled}\"")
-                                if (!isVersionExcluded) append(
-                                    ",\"${
-                                        app.versionName.replace(
-                                            "\"",
-                                            "\"\""
-                                        )
-                                    } (${app.versionCode})\""
-                                )
-                                if (!isTargetSDKExcluded) append(",\"${app.targetSdkVersion}\"")
-                                if (!isMinSDKExcluded) append(",\"${app.minSdkVersion}\"")
-                                if (!isInstalledAtExcluded) append(
-                                    ",\"${
-                                        outputDateFormat.format(
-                                            Date(app.firstInstallTime)
-                                        )
-                                    }\""
-                                )
-                                if (!isUpdatedAtExcluded) append(
-                                    ",\"${
-                                        outputDateFormat.format(
-                                            Date(
-                                                app.lastUpdateTime
-                                            )
-                                        )
-                                    }\""
-                                )
-                                if (!isInstallSourceExcluded) append(
-                                    ",\"${
-                                        app.installerName.replace(
-                                            "\"",
-                                            "\"\""
-                                        )
-                                    }\""
-                                )
-                                if (!isLinksExcluded) {
-                                    append(",\"https://play.google.com/store/apps/details?id=${app.packageName}\"")
-                                    append(",\"https://f-droid.org/packages/${app.packageName}\"")
+                                    )
                                 }
-                                appendLine()
-                            }
-                        }
 
-                        if (newFile != null) {
-                            contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
-                                outputStream.write(csvBuilder.toString().toByteArray())
-                            }
-                        }
-                    }
+                                val durationMillis = Date().time - startDate.time
+                                val durationSeconds = durationMillis / 1000.0
+                                val decimalFormat =
+                                    DecimalFormat("0.000 ${getString(R.string.seconds)}")
+                                val formattedDuration = decimalFormat.format(durationSeconds)
 
-                    BackupFormat.Markdown -> {
-                        val markdownBuilder = StringBuilder()
+                                val placeholders = mapOf(
+                                    "APP_ITEMS_PLACEHOLDER" to appItems.toString(),
+                                    "INSTALLERS_STATISTICS" to installerItems.toString(),
+                                    "INSTALLERS_FILTERS_DATA" to installerFilterData.toString(),
+                                    "INSTALLERS_FILTERS" to installerFilterItems.toString(),
+                                    "BACKUP_TIME_PLACEHOLDER" to outputDateFormat.format(currentDate),
+                                    "TRIGGER_TYPE_PLACEHOLDER" to type,
+                                    "TOTAL_APPS_COUNT_PLACEHOLDER" to appsCount.toString(),
+                                    "USER_APPS_COUNT_PLACEHOLDER" to userAppsCount.toString(),
+                                    "SYSTEM_APPS_COUNT_PLACEHOLDER" to systemAppsCount.toString(),
+                                    "ENABLED_APPS_COUNT_PLACEHOLDER" to enabledAppsCount.toString(),
+                                    "DISABLED_APPS_COUNT_PLACEHOLDER" to disabledAppsCount.toString(),
+                                    "BACKUP_DURATION_PLACEHOLDER" to formattedDuration,
 
-                        markdownBuilder.apply {
-                            append("**${getString(R.string.name_title)}")
-                            if (!isPackageExcluded) append(" | ${getString(R.string.package_title)}")
-                            if (!isSystemExcluded) append(" | ${getString(R.string.system_title)}")
-                            if (!isEnabledExcluded) append(" | ${getString(R.string.enabled_title)}")
-                            if (!isVersionExcluded) append(" | ${getString(R.string.version_title)}")
-                            if (!isTargetSDKExcluded) append(" | ${getString(R.string.target_sdk_version_title)}")
-                            if (!isMinSDKExcluded) append(" | ${getString(R.string.min_sdk_version_title)}")
-                            if (!isInstalledAtExcluded) append(" | ${getString(R.string.installed_at_title)}")
-                            if (!isUpdatedAtExcluded) append(" | ${getString(R.string.updated_at_title)}")
-                            if (!isInstallSourceExcluded) append(" | ${getString(R.string.installer)}")
-                            if (!isLinksExcluded) append(" | ${getString(R.string.links_title)}")
-                            append("**")
-                            appendLine()
-                            appendLine()
-                        }
-
-                        apps.forEach { app ->
-                            markdownBuilder.apply {
-                                append("**${app.name}**")
-                                if (!isPackageExcluded) append(" | ${app.packageName}")
-                                if (!isSystemExcluded) append(" | ${app.isSystem}")
-                                if (!isEnabledExcluded) append(" | ${app.isEnabled}")
-                                if (!isVersionExcluded) append(" | ${app.versionName} (${app.versionCode})")
-                                if (!isTargetSDKExcluded) append(" | ${app.targetSdkVersion}")
-                                if (!isMinSDKExcluded) append(" | ${app.minSdkVersion}")
-                                if (!isInstalledAtExcluded) append(
-                                    " | ${
-                                        outputDateFormat.format(
-                                            Date(app.firstInstallTime)
-                                        )
-                                    }"
+                                    "LOCALISATION_CREATED_AT" to getString(R.string.created_at),
+                                    "LOCALISATION_TRIGGER_TYPE" to getString(R.string.trigger_type),
+                                    "LOCALISATION_TOTAL_APPS_COUNT" to getString(R.string.total_apps_count),
+                                    "LOCALISATION_USER_APPS_COUNT" to getString(R.string.user_apps_count),
+                                    "LOCALISATION_SYSTEM_APPS_COUNT" to getString(R.string.system_apps_count),
+                                    "LOCALISATION_ENABLED_APPS_COUNT" to getString(R.string.enabled_apps_count),
+                                    "LOCALISATION_DISABLED_APPS_COUNT" to getString(R.string.disabled_apps_count),
+                                    "LOCALISATION_INSTALLED_APPS_COUNT" to getString(R.string.installed_apps_count),
+                                    "LOCALISATION_UNINSTALLED_APPS_COUNT" to getString(R.string.uninstalled_apps_count),
+                                    "LOCALISATION_SEARCH_PLACEHOLDER" to getString(R.string.search_placeholder),
+                                    "LOCALISATION_SORT_OPTIONS" to getString(R.string.sort_options),
+                                    "LOCALISATION_FILTER_OPTIONS" to getString(R.string.filter_options),
+                                    "LOCALISATION_NO_ITEMS_PLACEHOLDER" to getString(R.string.no_items_placeholder),
+                                    "LOCALISATION_SORTING" to getString(R.string.sorting),
+                                    "LOCALISATION_SORT_BY_DEFAULT" to getString(R.string.sort_by_default),
+                                    "LOCALISATION_SORT_BY_INSTALL_TIME" to getString(R.string.sort_by_install_time),
+                                    "LOCALISATION_SORT_BY_UPDATE_TIME" to getString(R.string.sort_by_update_time),
+                                    "LOCALISATION_SORT_BY_APP_NAME" to getString(R.string.sort_by_app_name),
+                                    "LOCALISATION_SORT_BY_PACKAGE_NAME" to getString(R.string.sort_by_package_name),
+                                    "LOCALISATION_ORDER" to getString(R.string.order),
+                                    "LOCALISATION_ORDER_ASCENDING" to getString(R.string.order_ascending),
+                                    "LOCALISATION_ORDER_DESCENDING" to getString(R.string.order_descending),
+                                    "LOCALISATION_CLOSE_BUTTON" to getString(R.string.close),
+                                    "LOCALISATION_APPS_FILTERING" to getString(R.string.apps_filtering),
+                                    "LOCALISATION_USER_APPS" to getString(R.string.user_apps),
+                                    "LOCALISATION_SYSTEM_APPS" to getString(R.string.system_apps),
+                                    "LOCALISATION_ENABLED_APPS" to getString(R.string.enabled_apps),
+                                    "LOCALISATION_DISABLED_APPS" to getString(R.string.disabled_apps),
+                                    "LOCALISATION_INSTALLED_APPS" to getString(R.string.installed_apps),
+                                    "LOCALISATION_APPLY_FILTERS_BUTTON" to getString(R.string.apply_filters_button),
+                                    "LOCALISATION_BACKUP_DURATION" to getString(R.string.backup_duration),
+                                    "LOCALISATION_SORT_BY_INSTALLER" to getString(R.string.sort_by_installer_name),
+                                    "LOCALISATION_SHOW_MORE" to getString(R.string.show_more),
+                                    "LOCALISATION_SHOW_LESS" to getString(R.string.show_less),
+                                    "LOCALISATION_INSTALL_SOURCE" to getString(R.string.installer),
+                                    "LOCALISATION_APP_STATES" to getString(R.string.app_states),
+                                    "LOCALISATION_BACKUP_APPS" to getString(R.string.backup_apps),
                                 )
-                                if (!isUpdatedAtExcluded) append(
-                                    " | ${
-                                        outputDateFormat.format(
-                                            Date(
-                                                app.lastUpdateTime
+
+                                var finalHtml = template
+
+                                placeholders.forEach { (placeholder, value) ->
+                                    finalHtml = finalHtml.replace("<!-- $placeholder -->", value)
+                                }
+
+                                if (newFile != null) {
+                                    contentResolver.openOutputStream(newFile.uri)
+                                        ?.use { outputStream ->
+                                            outputStream.write(finalHtml.toByteArray())
+                                        }
+                                }
+                            }
+
+                            BackupFormat.CSV -> {
+                                val csvBuilder = StringBuilder()
+
+                                csvBuilder.apply {
+                                    append("\"${getString(R.string.name_title)}\"")
+                                    if (!isPackageExcluded) append(",\"${getString(R.string.package_title)}\"")
+                                    if (!isSystemExcluded) append(",\"${getString(R.string.system_title)}\"")
+                                    if (!isEnabledExcluded) append(",\"${getString(R.string.enabled_title)}\"")
+                                    if (!isVersionExcluded) append(",\"${getString(R.string.version_title)}\"")
+                                    if (!isTargetSDKExcluded) append(",\"${getString(R.string.target_sdk_version_title)}\"")
+                                    if (!isMinSDKExcluded) append(",\"${getString(R.string.min_sdk_version_title)}\"")
+                                    if (!isInstalledAtExcluded) append(",\"${getString(R.string.installed_at_title)}\"")
+                                    if (!isUpdatedAtExcluded) append(",\"${getString(R.string.updated_at_title)}\"")
+                                    if (!isInstallSourceExcluded) append(",\"${getString(R.string.installer)}\"")
+                                    if (!isLinksExcluded) {
+                                        append(",\"${getString(R.string.play_market_title)}\"")
+                                        append(",\"${getString(R.string.f_droid_title)}\"")
+                                    }
+                                    appendLine()
+                                }
+
+                                apps.forEach { app ->
+                                    csvBuilder.apply {
+                                        append("\"${app.name.toString().replace("\"", "\"\"")}\"")
+                                        if (!isPackageExcluded) append(",\"${app.packageName}\"")
+                                        if (!isSystemExcluded) append(",\"${app.isSystem}\"")
+                                        if (!isEnabledExcluded) append(",\"${app.isEnabled}\"")
+                                        if (!isVersionExcluded) append(
+                                            ",\"${
+                                                app.versionName.replace(
+                                                    "\"",
+                                                    "\"\""
+                                                )
+                                            } (${app.versionCode})\""
+                                        )
+                                        if (!isTargetSDKExcluded) append(",\"${app.targetSdkVersion}\"")
+                                        if (!isMinSDKExcluded) append(",\"${app.minSdkVersion}\"")
+                                        if (!isInstalledAtExcluded) append(
+                                            ",\"${
+                                                outputDateFormat.format(
+                                                    Date(app.firstInstallTime)
+                                                )
+                                            }\""
+                                        )
+                                        if (!isUpdatedAtExcluded) append(
+                                            ",\"${
+                                                outputDateFormat.format(
+                                                    Date(
+                                                        app.lastUpdateTime
+                                                    )
+                                                )
+                                            }\""
+                                        )
+                                        if (!isInstallSourceExcluded) append(
+                                            ",\"${
+                                                app.installerName.replace(
+                                                    "\"",
+                                                    "\"\""
+                                                )
+                                            }\""
+                                        )
+                                        if (!isLinksExcluded) {
+                                            append(",\"https://play.google.com/store/apps/details?id=${app.packageName}\"")
+                                            append(",\"https://f-droid.org/packages/${app.packageName}\"")
+                                        }
+                                        appendLine()
+                                    }
+                                }
+
+                                if (newFile != null) {
+                                    contentResolver.openOutputStream(newFile.uri)
+                                        ?.use { outputStream ->
+                                            outputStream.write(csvBuilder.toString().toByteArray())
+                                        }
+                                }
+                            }
+
+                            BackupFormat.Markdown -> {
+                                val markdownBuilder = StringBuilder()
+
+                                markdownBuilder.apply {
+                                    append("**${getString(R.string.name_title)}")
+                                    if (!isPackageExcluded) append(" | ${getString(R.string.package_title)}")
+                                    if (!isSystemExcluded) append(" | ${getString(R.string.system_title)}")
+                                    if (!isEnabledExcluded) append(" | ${getString(R.string.enabled_title)}")
+                                    if (!isVersionExcluded) append(" | ${getString(R.string.version_title)}")
+                                    if (!isTargetSDKExcluded) append(" | ${getString(R.string.target_sdk_version_title)}")
+                                    if (!isMinSDKExcluded) append(" | ${getString(R.string.min_sdk_version_title)}")
+                                    if (!isInstalledAtExcluded) append(" | ${getString(R.string.installed_at_title)}")
+                                    if (!isUpdatedAtExcluded) append(" | ${getString(R.string.updated_at_title)}")
+                                    if (!isInstallSourceExcluded) append(" | ${getString(R.string.installer)}")
+                                    if (!isLinksExcluded) append(" | ${getString(R.string.links_title)}")
+                                    append("**")
+                                    appendLine()
+                                    appendLine()
+                                }
+
+                                apps.forEach { app ->
+                                    markdownBuilder.apply {
+                                        append("**${app.name}**")
+                                        if (!isPackageExcluded) append(" | ${app.packageName}")
+                                        if (!isSystemExcluded) append(" | ${app.isSystem}")
+                                        if (!isEnabledExcluded) append(" | ${app.isEnabled}")
+                                        if (!isVersionExcluded) append(" | ${app.versionName} (${app.versionCode})")
+                                        if (!isTargetSDKExcluded) append(" | ${app.targetSdkVersion}")
+                                        if (!isMinSDKExcluded) append(" | ${app.minSdkVersion}")
+                                        if (!isInstalledAtExcluded) append(
+                                            " | ${
+                                                outputDateFormat.format(
+                                                    Date(app.firstInstallTime)
+                                                )
+                                            }"
+                                        )
+                                        if (!isUpdatedAtExcluded) append(
+                                            " | ${
+                                                outputDateFormat.format(
+                                                    Date(
+                                                        app.lastUpdateTime
+                                                    )
+                                                )
+                                            }"
+                                        )
+                                        if (!isInstallSourceExcluded) append(" | ${app.installerName}")
+                                        if (!isLinksExcluded) append(" | [Play](https://play.google.com/store/apps/details?id=${app.packageName}) | [F-Droid](https://f-droid.org/packages/${app.packageName})")
+
+                                        appendLine()
+                                        appendLine()
+                                    }
+                                }
+
+                                if (newFile != null) {
+                                    contentResolver.openOutputStream(newFile.uri)
+                                        ?.use { outputStream ->
+                                            outputStream.write(
+                                                markdownBuilder.toString().toByteArray()
                                             )
-                                        )
-                                    }"
-                                )
-                                if (!isInstallSourceExcluded) append(" | ${app.installerName}")
-                                if (!isLinksExcluded) append(" | [Play](https://play.google.com/store/apps/details?id=${app.packageName}) | [F-Droid](https://f-droid.org/packages/${app.packageName})")
-
-                                appendLine()
-                                appendLine()
+                                        }
+                                }
                             }
                         }
 
-                        if (newFile != null) {
-                            contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
-                                outputStream.write(markdownBuilder.toString().toByteArray())
-                            }
+                        if (newFile == null) {
+                            throw Error(getString(R.string.file_create_failed))
                         }
+
+                        results.add(
+                            BackupFormatResult(
+                                format,
+                                newFile,
+                                null
+                            )
+                        )
+                    } catch (exception: Exception) {
+                        results.add(
+                            BackupFormatResult(
+                                format,
+                                null,
+                                exception
+                            )
+                        )
                     }
                 }
 
-                if (newFile == null) {
-                    throw Error(getString(R.string.file_create_failed))
-                }
+                val (successfulResults, unsuccessfulResults) = results.partition { it.isSuccess() }
 
-                val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
-                    putExtra("uri", newFile.uri.toString())
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                }
+                val unsuccessfulMessage =
+                    unsuccessfulResults.joinToString("\n") { "${it.format.value}: ${it.exception?.localizedMessage ?: "Unknown error"}" }
 
-                val notificationId = getNotificationId()
+                if (successfulResults.isEmpty()) {
+                    val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
+                        .setContentTitle(getString(R.string.backup_failed))
+                        .setContentText(unsuccessfulMessage)
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .build()
 
-                val pendingIntent = PendingIntent.getActivity(
-                    this,
-                    notificationId,
-                    mainActivityIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
+                    val manager = getSystemService(NotificationManager::class.java)
+                    manager.notify(getNotificationId(), endNotification)
+                } else {
+                    val firstUri = successfulResults.first().file?.uri
+                    val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
+                        putExtra("uri", firstUri.toString())
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
 
-                val successfulTitle =
-                    getString(R.string.backup_done_title, appsCount.toString(), type)
-                val successfulText = getString(
-                    R.string.backup_done_text,
-                    userAppsCount.toString(),
-                    systemAppsCount.toString()
-                )
+                    val notificationId = getNotificationId()
 
-                val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
-                    .setContentTitle(successfulTitle)
-                    .setContentText(successfulText)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setContentIntent(pendingIntent)
-                    .build()
+                    val pendingIntent = PendingIntent.getActivity(
+                        this,
+                        notificationId,
+                        mainActivityIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
 
-                val manager = getSystemService(NotificationManager::class.java)
-                manager.notify(notificationId, endNotification)
+                    val successfulTitle =
+                        getString(
+                            R.string.backup_done_title, appsCount.toString(), type,
+                            successfulResults.joinToString(", ") { it.format.value })
+                    var successfulText = getString(
+                        R.string.backup_done_text,
+                        userAppsCount.toString(),
+                        systemAppsCount.toString()
+                    )
+                    if (unsuccessfulMessage.isNotEmpty()) {
+                        successfulText += "\n${getString(R.string.failed)}:\n${unsuccessfulMessage}"
+                    }
 
-                if (onCompleteCallback != null) {
-                    onCompleteCallback?.let { it(newFile.uri) }
-                    onCompleteCallback = null
+                    val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
+                        .setContentTitle(successfulTitle)
+                        .setContentText(successfulText)
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .setContentIntent(pendingIntent)
+                        .build()
+
+                    val manager = getSystemService(NotificationManager::class.java)
+                    manager.notify(notificationId, endNotification)
+
+                    if (onCompleteCallback != null && firstUri != null) {
+                        onCompleteCallback?.let { it(firstUri) }
+                        onCompleteCallback = null
+                    }
                 }
             } catch (exception: Exception) {
                 val endNotification = NotificationCompat.Builder(this, BACKUP_CHANNEL_ID)
@@ -747,11 +814,7 @@ class BackupService : Service() {
         val bitmap = if (drawable is BitmapDrawable) {
             drawable.bitmap
         } else {
-            Bitmap.createBitmap(
-                drawable.intrinsicWidth,
-                drawable.intrinsicHeight,
-                Bitmap.Config.ARGB_8888
-            ).apply {
+            createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight).apply {
                 val canvas = Canvas(this)
                 drawable.setBounds(0, 0, canvas.width, canvas.height)
                 drawable.draw(canvas)

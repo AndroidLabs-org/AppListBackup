@@ -122,7 +122,7 @@ fun BackupInstructionsScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         instructions.forEachIndexed { index, instruction ->
-            val isExpanded = expandedStates[index] ?: false
+            val isExpanded = expandedStates[index] == true
             InstructionRow(
                 instruction = instruction,
                 isExpanded = isExpanded,
@@ -133,7 +133,7 @@ fun BackupInstructionsScreen(
         }
 
         val intentIndex = instructions.count()
-        val isIntentExpanded = expandedStates[intentIndex] ?: false
+        val isIntentExpanded = expandedStates[intentIndex] == true
 
         InstructionsIntent(
             appName = appName,

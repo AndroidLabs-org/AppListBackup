@@ -12,22 +12,23 @@ import org.androidlabs.applistbackup.data.BackupFormat
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val _backupUri: MutableLiveData<Uri?> = MutableLiveData(loadBackupUri())
-    private val _backupFormat: MutableLiveData<BackupFormat> = MutableLiveData(loadBackupFormat())
+    private val _backupFormat: MutableLiveData<Set<BackupFormat>> =
+        MutableLiveData(loadBackupFormats())
 
     val backupUri: LiveData<Uri?> get() = _backupUri
-    val backupFormat: LiveData<BackupFormat> get() = _backupFormat
+    val backupFormats: LiveData<Set<BackupFormat>> get() = _backupFormat
 
     private fun loadBackupUri(): Uri? {
         return Settings.getBackupUri(getApplication())
     }
 
-    private fun loadBackupFormat(): BackupFormat {
-        return Settings.getBackupFormat(getApplication())
+    private fun loadBackupFormats(): Set<BackupFormat> {
+        return Settings.getBackupFormats(getApplication())
     }
 
     fun refresh() {
         _backupUri.postValue(loadBackupUri())
-        _backupFormat.postValue(loadBackupFormat())
+        _backupFormat.postValue(loadBackupFormats())
     }
 
     fun saveBackupUri(uri: Uri) {
@@ -37,9 +38,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun saveBackupFormat(format: BackupFormat) {
+    fun saveBackupFormats(format: Set<BackupFormat>) {
         viewModelScope.launch(Dispatchers.IO) {
-            Settings.setBackupFormat(getApplication(), format)
+            Settings.setBackupFormats(getApplication(), format)
             _backupFormat.postValue(format)
         }
     }
