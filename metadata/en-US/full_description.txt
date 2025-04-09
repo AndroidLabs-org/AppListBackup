@@ -8,6 +8,7 @@ Key Features:
 
 * Quickly create backup lists of installed apps with ease, including details such as: installation date, version number, package name, app icon and more.
 * Export your backup lists in multiple formats including HTML, Markdown, and CSV to suit your needs. The HTML export includes powerful sorting and filtering capabilities.
+* Control the maximum number of stored backups.
 * Seamlessly integrate with Tasker, Automate, MacroDroid, and any other apps that support Tasker Plugin, allowing you to automate your backup schedule.
 * Trigger backups via Intent Broadcasts, enabling automation with tools like Tasker, ADB, and MacroDroid for even more flexibility.
 * Does not need root and zero permissions are required (notifications optional).

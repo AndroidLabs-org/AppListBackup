@@ -1,0 +1,22 @@
+New & Improved Features:
+
+• Enhanced Backup Options
+ • Support for Markdown and CSV backup formats
+ • Control the maximum number of stored backups
+
+• Backup Management
+ • Introduced a dedicated Backups tab to view and manage saved backups
+
+• Settings Reorganization
+ • Settings have been moved to a dedicated screen for improved accessibility and navigation
+
+• Filter Improvements
+ • Simplified filters by removing the word “include” for a cleaner, more intuitive interface
+
+• Improved Compatibility
+ • Now fully supported on Android TV devices
+ • Overall performance improvements
+
+⸻
+
+These updates enhance usability, give you more control over backups, and expand compatibility across more Android devices.
