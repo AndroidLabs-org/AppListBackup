@@ -205,9 +205,8 @@ private fun DisplayContent(
 
                 BackupFormat.Markdown -> {
                     BackupMarkdownView(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(16.dp), uri = uri
+                        modifier = Modifier.weight(1f),
+                        uri = uri
                     )
                 }
             }

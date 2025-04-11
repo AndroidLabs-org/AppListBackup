@@ -20,13 +20,13 @@ import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
 import io.noties.markwon.core.MarkwonTheme
 import io.noties.markwon.recycler.MarkwonAdapter
-import org.androidlabs.applistbackup.R
-import org.commonmark.ext.gfm.tables.TableBlock
 import io.noties.markwon.recycler.table.TableEntry
 import io.noties.markwon.recycler.table.TableEntryPlugin
 import io.noties.markwon.utils.Dip
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.androidlabs.applistbackup.R
+import org.commonmark.ext.gfm.tables.TableBlock
 
 @SuppressLint("NotifyDataSetChanged")
 @Composable
