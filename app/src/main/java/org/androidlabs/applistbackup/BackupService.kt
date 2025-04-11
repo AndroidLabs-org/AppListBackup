@@ -718,7 +718,7 @@ class BackupService : Service() {
                                 val markdownBuilder = StringBuilder()
 
                                 markdownBuilder.apply {
-                                    append("**${getString(R.string.name_title)}")
+                                    append("| ${getString(R.string.name_title)}")
                                     if (!isPackageExcluded) append(" | ${getString(R.string.package_title)}")
                                     if (!isSystemExcluded) append(" | ${getString(R.string.system_title)}")
                                     if (!isEnabledExcluded) append(" | ${getString(R.string.enabled_title)}")
@@ -729,14 +729,22 @@ class BackupService : Service() {
                                     if (!isUpdatedAtExcluded) append(" | ${getString(R.string.updated_at_title)}")
                                     if (!isInstallSourceExcluded) append(" | ${getString(R.string.installer)}")
                                     if (!isLinksExcluded) append(" | ${getString(R.string.links_title)}")
-                                    append("**")
+                                    append(" |")
                                     appendLine()
+                                }
+
+                                val linesCount = markdownBuilder.toString().split("|").size - 2
+                                markdownBuilder.apply {
+                                    append("|")
+                                    repeat(linesCount) {
+                                        append(" --- |")
+                                    }
                                     appendLine()
                                 }
 
                                 apps.forEach { app ->
                                     markdownBuilder.apply {
-                                        append("**${app.name}**")
+                                        append("| **${app.name}**")
                                         if (!isPackageExcluded) append(" | ${app.packageName}")
                                         if (!isSystemExcluded) append(" | ${app.isSystem}")
                                         if (!isEnabledExcluded) append(" | ${app.isEnabled}")
@@ -762,7 +770,7 @@ class BackupService : Service() {
                                         if (!isInstallSourceExcluded) append(" | ${app.installerName}")
                                         if (!isLinksExcluded) append(" | [Play](https://play.google.com/store/apps/details?id=${app.packageName}) | [F-Droid](https://f-droid.org/packages/${app.packageName})")
 
-                                        appendLine()
+                                        append(" |")
                                         appendLine()
                                     }
                                 }
