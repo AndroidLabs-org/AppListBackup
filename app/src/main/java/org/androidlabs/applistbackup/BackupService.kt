@@ -768,7 +768,7 @@ class BackupService : Service() {
                                             }"
                                         )
                                         if (!isInstallSourceExcluded) append(" | ${app.installerName}")
-                                        if (!isLinksExcluded) append(" | [Play](https://play.google.com/store/apps/details?id=${app.packageName}) | [F-Droid](https://f-droid.org/packages/${app.packageName})")
+                                        if (!isLinksExcluded) append(" | [Play](https://play.google.com/store/apps/details?id=${app.packageName}), [F-Droid](https://f-droid.org/packages/${app.packageName})")
 
                                         append(" |")
                                         appendLine()
