@@ -1,10 +1,12 @@
 package org.androidlabs.applistbackup.docs
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,7 +68,15 @@ fun WebViewComposable(filename: String, modifier: Modifier = Modifier) {
                 ): Boolean {
                     request?.url?.let { url ->
                         val intent = Intent(Intent.ACTION_VIEW, url)
-                        context.startActivity(intent)
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: ActivityNotFoundException) {
+                            Toast.makeText(
+                                context,
+                                R.string.no_app_to_open_link,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                         return true
                     }
                     return false

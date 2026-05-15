@@ -1,6 +1,7 @@
 package org.androidlabs.applistbackup.reader
 
 import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -9,6 +10,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,6 +29,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.androidlabs.applistbackup.R
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -72,7 +75,17 @@ fun BackupWebView(
                             coroutineScope.launch(Dispatchers.IO) {
                                 val intent = Intent(Intent.ACTION_VIEW, url)
                                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(intent)
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: ActivityNotFoundException) {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(
+                                            context,
+                                            R.string.no_app_to_open_link,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
                             }
                             return true
                         }
