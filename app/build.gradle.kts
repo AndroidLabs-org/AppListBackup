@@ -95,20 +95,6 @@ android {
         disable.add("NullSafeMutableLiveData")
     }
 
-    android.applicationVariants.all {
-        this.outputs
-            .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
-            .forEach { output ->
-                val project = "applistbackup"
-                val sep = "_"
-                val date = Date()
-                val sdf = SimpleDateFormat("ddMMyy_HHmm")
-                val formattedDate = sdf.format(date)
-                val newApkName = "$project$sep$formattedDate.apk"
-                output.outputFileName = newApkName
-            }
-    }
-
 }
 
 dependencies {
