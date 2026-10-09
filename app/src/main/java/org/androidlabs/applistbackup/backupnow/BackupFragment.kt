@@ -29,16 +29,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.androidlabs.applistbackup.BackupService
+import org.androidlabs.applistbackup.BackupTempStore
+import org.androidlabs.applistbackup.MainActivityViewModel
 import org.androidlabs.applistbackup.R
+import org.androidlabs.applistbackup.data.BackupItem
 import org.androidlabs.applistbackup.ui.theme.AppListBackupTheme
+import kotlin.getValue
 
 class BackupFragment : Fragment() {
     private val viewModel: BackupViewModel by viewModels()
+    private val mainActivityViewModel: MainActivityViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -51,6 +57,7 @@ class BackupFragment : Fragment() {
                         ActivityState(
                             modifier = Modifier.padding(innerPadding),
                             viewModel = viewModel,
+                            mainViewModel = mainActivityViewModel,
                             runBackup = ::runBackup,
                             onRequestNotificationsPermission = ::onRequestNotificationsPermission
                         )
@@ -60,8 +67,12 @@ class BackupFragment : Fragment() {
         }
     }
 
-    private fun runBackup() {
-        BackupService.run(requireContext())
+    private fun runBackup(temp:Boolean) {
+        BackupService.run(requireContext(),
+            temporary = temp,
+            onComplete = { uri, temp ->
+                mainActivityViewModel.navigateToBrowse()
+            })
     }
 
     private fun onRequestNotificationsPermission() {
@@ -77,17 +88,18 @@ class BackupFragment : Fragment() {
 private fun ActivityState(
     modifier: Modifier = Modifier,
     viewModel: BackupViewModel,
-    runBackup: () -> Unit,
+    mainViewModel: MainActivityViewModel,
+    runBackup: (Boolean) -> Unit,
     onRequestNotificationsPermission: () -> Unit
 ) {
     val isNotificationEnabled = viewModel.notificationEnabled.observeAsState(initial = false)
-    val backupUri = viewModel.backupUri.observeAsState()
-    val backupFiles = viewModel.backupFiles.observeAsState(initial = emptyList())
-    val isRunning by viewModel.isBackupRunning.collectAsState()
+    val backupUri = mainViewModel.backupUri.observeAsState()
+    val backupFiles = mainViewModel.backupFiles.collectAsState(initial = emptyList())
+    val isRunning by mainViewModel.isBackupRunning.collectAsState()
 
     LaunchedEffect(key1 = true) {
         viewModel.refreshNotificationStatus()
-        viewModel.refreshBackupUri()
+        mainViewModel.refreshBackupUri()
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -126,8 +138,18 @@ private fun ActivityState(
             Spacer(modifier = Modifier.height(16.dp))
 
             if (backupUri.value != null) {
+
                 Button(
-                    onClick = runBackup,
+                    onClick = { runBackup(true) },
+                    enabled = !isRunning
+                ) {
+                    Text(text = stringResource(if (isRunning) R.string.in_progress else R.string.backup_temp))
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                Button(
+                    onClick = { runBackup(false) },
                     enabled = !isRunning
                 ) {
                     Text(text = stringResource(if (isRunning) R.string.in_progress else R.string.backup_now))
@@ -136,10 +158,18 @@ private fun ActivityState(
                 if (backupFiles.value.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
 
-                    Text(
-                        text = "${stringResource(R.string.last_backup)}: ${backupFiles.value.first().title}",
-                        fontSize = 12.sp
-                    )
+                    val lastBackup = backupFiles.value
+                        .filterIsInstance<BackupItem.File>()
+                        .firstOrNull()
+
+                    if (lastBackup != null) {
+                        Spacer(Modifier.height(8.dp))
+
+                        Text(
+                            text = "${stringResource(R.string.last_backup)}: ${lastBackup.file.title}",
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             } else {
                 Text(

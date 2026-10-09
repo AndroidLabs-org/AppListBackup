@@ -1,0 +1,19 @@
+New
+* Exclude specific apps from backups (Settings > Excluded apps).
+* Choose which fields are exported (Settings > Exported fields).
+* Set a default sort field and order (Settings > Sort).
+* Share a backup from the viewer, which now opens automatically after a backup completes.
+* Separate toggles for user, system and disabled apps.
+* Copy rows from the Markdown and CSV previews.
+* Licence information and the app version code shown in Settings.
+
+Improved
+* Redesigned Settings with better TalkBack support and fewer focus stops.
+* Unified Markdown and CSV formatting; opening Markdown files no longer freezes the UI.
+* Full folder path shown for Storage Access Framework (SAF) locations.
+* Note clarifying that HTML backups contain more detail than CSV or Markdown.
+
+Fixed
+* Crash when the backup folder permission had been revoked.
+* Crash when no app was available to handle a tapped link.
+* Latest-backup detection and installer names across Android versions.

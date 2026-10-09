@@ -6,6 +6,7 @@ import org.androidlabs.applistbackup.data.BackupAppInfo.entries
 
 enum class BackupAppInfo(val value: String) {
     Package("Package"),
+    Icon("Icon"),
     System("System"),
     Enabled("Enabled"),
     Version("Version"),
@@ -25,6 +26,7 @@ enum class BackupAppInfo(val value: String) {
     fun title(context: Context): String {
         val titleId = when (this) {
             Package -> R.string.package_title
+            Icon -> R.string.icon_title
             System -> R.string.system_title
             Enabled -> R.string.enabled_title
             Version -> R.string.version_title

@@ -1,3 +1,8 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -6,14 +11,14 @@ plugins {
 
 android {
     namespace = "org.androidlabs.applistbackup"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "org.androidlabs.applistbackup"
         minSdk = 28
-        targetSdk = 35
-        versionCode = 19
-        versionName = "2.0.2"
+        targetSdk = 37
+        versionCode = 20
+        versionName = "2.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -21,9 +26,38 @@ android {
         }
     }
 
+    // Real credentials never live here or in git. Locally: a `keystore.properties`
+    // file (gitignored) next to this one, holding storeFile/storePassword/keyAlias/
+    // keyPassword. In CI: the same four names as masked, protected GitLab CI/CD
+    // variables (RELEASE_STORE_FILE holds the keystore's path once the runner has
+    // it provisioned, not its contents). Neither exists yet as of this MR - see
+    // docs/RELEASE-SIGNING.md for what's actually needed before this does anything.
+    val keystoreProperties = Properties()
+    val keystorePropertiesFile = rootProject.file("keystore.properties")
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(keystorePropertiesFile.inputStream())
+    }
+
+    fun signingProperty(name: String) =
+        keystoreProperties.getProperty(name) ?: System.getenv("RELEASE_${name.uppercase()}")
+
+    signingConfigs {
+        create("release") {
+            signingProperty("storeFile")?.let { storeFile = file(it) }
+            storePassword = signingProperty("storePassword")
+            keyAlias = signingProperty("keyAlias")
+            keyPassword = signingProperty("keyPassword")
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // Only actually signs once the four properties above resolve to real
+            // values - until then this points release at a signing config with a
+            // null storeFile, same as having none, which is today's real state.
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -31,19 +65,19 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
     }
     buildFeatures {
         compose = true
         viewBinding = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
-    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -56,6 +90,25 @@ android {
         // Disables dependency metadata when building Android App Bundles.
         includeInBundle = false
     }
+
+    lint {
+        disable.add("NullSafeMutableLiveData")
+    }
+
+    android.applicationVariants.all {
+        this.outputs
+            .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
+            .forEach { output ->
+                val project = "applistbackup"
+                val sep = "_"
+                val date = Date()
+                val sdf = SimpleDateFormat("ddMMyy_HHmm")
+                val formattedDate = sdf.format(date)
+                val newApkName = "$project$sep$formattedDate.apk"
+                output.outputFileName = newApkName
+            }
+    }
+
 }
 
 dependencies {
@@ -76,13 +129,17 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.accompanist.drawablepainter)
     implementation(libs.datastore.preferences)
-    implementation(libs.bundles.markwon)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.uiautomator)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.androidx.test.core)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.tasker.plugin)
+    implementation(libs.androidx.compose.material.icons.core)
 }

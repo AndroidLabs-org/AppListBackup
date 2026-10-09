@@ -1,0 +1,14 @@
+# Normalise line endings so a checkout on Windows cannot re-introduce CRLF into the
+# repository. Without this the whole tree shows as modified after a Windows edit.
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF.
+*.bat text eol=crlf
+
+# Binary assets: never touched.
+*.png binary
+*.jpg binary
+*.webp binary
+*.jar binary
+*.jks binary
+*.keystore binary

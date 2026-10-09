@@ -1,0 +1,114 @@
+name: Release
+
+# Triggers on a version tag (v1.0.1, v2.0.2, ... - matches every tag this
+# project has used for a release so far). Builds the release APK signed with
+# the real keystore, verifies it's signed with the expected key before
+# anything is published, and attaches it to the GitHub Release for that tag -
+# which is the file F-Droid's own build picks up and compares against
+# (Binaries: field in the fdroiddata metadata).
+#
+# Required repo secrets (Settings -> Secrets and variables -> Actions):
+#   RELEASE_KEYSTORE_BASE64   the keystore file, base64-encoded
+#                             (create with: base64 -i your.keystore | pbcopy)
+#   RELEASE_STORE_PASSWORD
+#   RELEASE_KEY_ALIAS
+#   RELEASE_KEY_PASSWORD
+#
+# None of these are ever written to a log, a workflow output, or committed
+# anywhere - GitHub Actions masks secret values in logs automatically, and
+# the decoded keystore file is removed at the end of the job regardless of
+# whether the build succeeded.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Decode the release keystore
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: Build the signed release APK
+        env:
+          RELEASE_STOREFILE: ${{ runner.temp }}/release.jks
+          RELEASE_STOREPASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEYALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEYPASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Locate and rename the APK for the release
+        id: apk
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          SRC=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          if [ -z "$SRC" ]; then
+            echo "No release APK was produced" >&2
+            exit 1
+          fi
+          DEST="AppListBackup-v${VERSION}.apk"
+          mv "$SRC" "$DEST"
+          echo "path=$DEST" >> "$GITHUB_OUTPUT"
+
+      # Fails the whole release before it's ever published if the build
+      # somehow produced something signed with the wrong key - the exact
+      # scenario the AllowedAPKSigningKeys check in fdroiddata exists to
+      # catch, just caught here first instead of after F-Droid rejects it.
+      - name: Verify the signing certificate matches the expected key
+        env:
+          EXPECTED_FINGERPRINT: 6b5449214285bc0e989c82fef9e276ea68a0619c58fc6ab2feef1b1022d81b64
+        run: |
+          set -euo pipefail
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
+          ACTUAL=$("$APKSIGNER" verify --print-certs "${{ steps.apk.outputs.path }}" \
+            | grep 'SHA-256 digest' | head -1 | awk '{print $NF}')
+          echo "Expected: $EXPECTED_FINGERPRINT"
+          echo "Actual:   $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED_FINGERPRINT" ]; then
+            echo "::error::Signing certificate does not match the expected fingerprint - refusing to publish"
+            exit 1
+          fi
+
+      - name: Remove the decoded keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      # GitHub Release notes have been empty for every release so far -
+      # nothing ever set them. The changelog already exists per release for
+      # F-Droid's own listing (metadata/en-US/changelogs/<versionCode>.txt),
+      # so this reuses that file instead of keeping two copies of the same
+      # text in sync by hand.
+      - name: Find this version's changelog
+        id: changelog
+        run: |
+          set -euo pipefail
+          VERSION_CODE=$(sed -n 's/.*versionCode = \([0-9]*\).*/\1/p' app/build.gradle.kts)
+          FILE="metadata/en-US/changelogs/${VERSION_CODE}.txt"
+          if [ ! -f "$FILE" ]; then
+            echo "::error::No changelog at $FILE for versionCode $VERSION_CODE - add one before tagging a release (see the F-Droid release wiki page)."
+            exit 1
+          fi
+          echo "path=$FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the signed APK to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.apk.outputs.path }}
+          body_path: ${{ steps.changelog.outputs.path }}

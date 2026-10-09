@@ -61,22 +61,25 @@ fun InstructionsIntent(
             )
             Icon(
                 painter = painterResource(id = if (isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more),
-                contentDescription = if (isExpanded) "Collapse" else "Expand"
+                contentDescription = stringResource(if (isExpanded) R.string.collapse else R.string.expand)
             )
         }
 
         if (isExpanded) {
-            Text(text = stringResource(R.string.intent_integration_description_2, appName))
+            Text(text = stringResource(R.string.intent_integration_description_1, appName))
 
-            BlockView(title = "Intent API") {
-                ValueRow(title = "Package:", value = packageName)
+            BlockView(title = stringResource(R.string.intent_api_block_title)) {
+                ValueRow(title = stringResource(R.string.intent_api_package_label), value = packageName)
 
-                ValueRow(title = "Action:", value = action)
+                ValueRow(title = stringResource(R.string.intent_api_action_label), value = action)
 
                 Text(text = stringResource(R.string.optionally))
 
                 BackupFormat.entries.forEach {
-                    ValueRow(title = "Extra (${it.value}):", value = "format:${it.value}")
+                    ValueRow(
+                        title = stringResource(R.string.intent_api_extra_label, it.value),
+                        value = "format:${it.value}"
+                    )
                 }
 
                 Text(
@@ -89,7 +92,7 @@ fun InstructionsIntent(
 
             Text(text = stringResource(R.string.intent_integration_description_2))
 
-            BlockView(title = "Shell (ADB)") {
+            BlockView(title = stringResource(R.string.intent_api_shell_block_title)) {
                 ValueRow(value = "adb shell am broadcast -a $action -n $packageName/.BackupReceiver")
 
                 BackupFormat.entries.forEach {
@@ -156,12 +159,12 @@ fun ValueRow(
     value: String
 ) {
     val context = LocalContext.current
-
+    val textCopied = stringResource(R.string.text_copied)
     fun onCopy() {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("Copied Text", value)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(context, context.getString(R.string.text_copied), Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, textCopied, Toast.LENGTH_SHORT).show()
     }
 
     val annotatedString = buildAnnotatedString {

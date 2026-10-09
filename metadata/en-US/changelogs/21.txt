@@ -1,0 +1,9 @@
+1. Fixed crash when folder permission is missing.
+2. Added Share button in viewer.Added sort settings.
+3. Automatically open viewer after successful backup.
+4. Added note explaining that HTML format contains more information.
+5. Added support for Storage Access Framework (SAF).
+6. Fixed logic for detecting the latest backup file.
+7. Added LICENSE file.
+8. Fixed TalkBack accessibility issues in settings.
+9. Added excluded apps in settings.

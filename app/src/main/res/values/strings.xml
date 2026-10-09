@@ -70,7 +70,7 @@
     </string>
     <string name="intent_integration">How does Intent integration work?</string>
     <string name="intent_integration_description_1">%1$s provides a quick backup API. You can trigger %1$s by sending Intent Broadcasts. All values are clickable to copy to clipboard.</string>
-    <string name="intent_integration_description_2">You can use ADB or automation tools like MacroDroid to broadcast intents to trigger hidings. Here are some examples.</string>
+    <string name="intent_integration_description_2">You can use ADB or an automation tool such as Tasker, Automate or MacroDroid to broadcast an intent and start a backup. Here are some examples.</string>
     <string name="intent_integration_example">
         Example to trigger the backup by Tasker:\n
         1. Open Tasker and create a new profile.\n
@@ -87,26 +87,25 @@
     <string name="multiple_formats">Multiple formats can be used together, separated by commas (e.g., %1$s)</string>
     <string name="loading">Loading…</string>
     <string name="error_message">Error: %1$s</string>
+    <string name="viewer_crashed">The viewer ran out of memory and closed this document. Reopen it to try again, or export a text format instead.</string>
     <string name="wrong_file">Please select a backup file created by this application</string>
     <string name="backup">Backup</string>
     <string name="back">Back</string>
     <string name="browse">Browse</string>
     <string name="no_backup_found">No backup found</string>
-    <string name="tasker_command">Backup installed apps.</string>
-    <string name="terms">Terms and Conditions</string>
+    <string name="terms">Terms</string>
     <string name="privacy">Privacy Policy</string>
-    <string name="icon">Icon</string>
     <string name="notifications_disabled">Notifications are disabled.\nEnable notifications for correct functionality.</string>
     <string name="notifications_enable">Enable Notifications</string>
     <string name="view_backups">View backups</string>
+    <string name="select_backup">Select a backup</string>
     <string name="destination_not_set">Please select a backup folder\nin Settings to begin using the app.</string>
     <string name="destination">Backup destination</string>
-    <string name="keep_backups">Keep backups</string>
+    <string name="keep_backups">Backup history</string>
     <string name="unlimited">Unlimited</string>
+    <string name="unlimited_backups_toggle">Unlimited backups</string>
     <string name="backup_limit_description">The %d most recent backups will be kept</string>
-    <string name="choose">Choose</string>
-    <string name="change">Change</string>
-    <string name="faq">FAQ</string>
+    <string name="faq">Help</string>
     <string name="version">Version: %1$s</string>
     <string name="backup_started">Backup started</string>
     <string name="in_progress" tools:ignore="PrivateResource">In progress…</string>
@@ -115,10 +114,22 @@
     <string name="file_create_failed">Unable to create backup file.</string>
     <string name="automatic">Automatic</string>
     <string name="manual">Manual</string>
-    <string name="backup_done_title">Backup done for %1$s apps (%2$s) in %3$s</string>
-    <string name="backup_done_text">%1$s users apps and %2$s system apps.</string>
+    <plurals name="backup_done_title">
+        <item quantity="one">Backup done for %1$d app (%2$s) in %3$s</item>
+        <item quantity="other">Backup done for %1$d apps (%2$s) in %3$s</item>
+    </plurals>
+    <plurals name="user_apps_count_text">
+        <item quantity="one">%1$d user app</item>
+        <item quantity="other">%1$d user apps</item>
+    </plurals>
+    <plurals name="system_apps_count_text">
+        <item quantity="one">%1$d system app</item>
+        <item quantity="other">%1$d system apps</item>
+    </plurals>
+    <string name="backup_done_text">%1$s and %2$s.</string>
     <string name="name_title">Name</string>
     <string name="package_title">Package</string>
+    <string name="icon_title">Icon</string>
     <string name="system_title">System</string>
     <string name="enabled_title">Enabled</string>
     <string name="version_title">Version</string>
@@ -129,8 +140,6 @@
     <string name="installer">Install source</string>
     <string name="links_title">Links</string>
     <string name="links_title_details">is working only for published apps</string>
-    <string name="play_market_title">Play Market</string>
-    <string name="f_droid_title">F-Droid</string>
     <string name="text_copied">Text copied to clipboard</string>
     <string name="created_at">Created at</string>
     <string name="trigger_type">Trigger type</string>
@@ -174,9 +183,8 @@
     <string name="settings">Settings</string>
     <string name="backup_now">Backup now</string>
     <string name="last_backup">Last backup</string>
-    <string name="dropdown">Dropdown</string>
-    <string name="backup_format">Backup format</string>
-    <string name="backup_data_settings">Backup data settings</string>
+    <string name="backup_format">File format</string>
+    <string name="backup_data_settings">Exported fields</string>
     <string name="select_all">Select all</string>
     <string name="deselect_all">Deselect all</string>
     <string name="backup_limit_description_prefix">The</string>
@@ -184,4 +192,75 @@
     <string name="backup_limit_note">Important: Older backups will be automatically deleted when the limit is reached.</string>
     <string name="no_formats_error">Please select at least one format</string>
     <string name="failed">Failed</string>
+    <string name="show_options">Show options</string>
+    <string name="visible_app_info">Visible app info</string>
+    <string name="backup_schedule">Scheduled backup</string>
+    <string name="off">Off</string>
+    <string name="sunday">Sunday</string>
+    <string name="monday">Monday</string>
+    <string name="tuesday">Tuesday</string>
+    <string name="wednesday">Wednesday</string>
+    <string name="thursday">Thursday</string>
+    <string name="friday">Friday</string>
+    <string name="saturday">Saturday</string>
+    <string name="no_apps_error">Please select at least one option</string>
+    <string name="backup_app_user">User apps</string>
+    <string name="backup_app_system">System apps</string>
+    <string name="backup_app_disabled">Disabled apps</string>
+    <string name="cancel">Cancel</string>
+    <string name="apply">Apply</string>
+    <string name="save_location">Save location</string>
+    <string name="apps_to_backup">Apps to back up</string>
+    <string name="about">About</string>
+    <string name="app_types">App types</string>
+    <string name="options">Options</string>
+    <string name="include_disabled_apps">Include disabled apps</string>
+    <string name="disabled_descr">Disabled apps will be included in the backup list</string>
+    <string name="license">License</string>
+    <string name="no_app_to_open_link">No app available to open this link</string>
+    <string name="unsupported_file_format">Unsupported file format</string>
+    <string name="share">Share</string>
+    <string name="html_hint">Note: The HTML format includes extra app details that aren’t available in CSV or Markdown.</string>
+    <string name="backup_sort_settings">Sort settings</string>
+    <string name="excluded_apps">Excluded Apps</string>
+    <string name="search">Search</string>
+    <string name="select_excluded_apps">Checked apps will NOT be included in your backups</string>
+    <string name="clear_all">Clear all</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="delete_backup">Delete backup</string>
+    <string name="sure_to_delete_backup">Are you sure you want to delete this backup?</string>
+    <string name="backup_deleted">Backup deleted</string>
+    <string name="unable_delete">Unable to delete backup</string>
+    <string name="include_system_info">Include system info (HTML, Markdown only)</string>
+    <string name="backup_temp">Temporary backup</string>
+    <string name="also_latest">Also create latest backup file</string>
+    <string name="create_backup">Create backup</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="app_list_changed">App list changed</string>
+    <string name="do_you_want_create_backup">Do you want to create a backup?</string>
+    <string name="at_least_one_reminder_required">" At least one reminder option must be selected"</string>
+
+    <!-- Android TV folder picker -->
+    <string name="tv_select_folder">Select Folder</string>
+    <string name="tv_current_folder">📍 Current: %1$s</string>
+    <string name="tv_select_this_folder">✓ Select This Folder</string>
+    <string name="tv_create_new_folder">➕ Create New Folder</string>
+    <string name="tv_create_new_folder_title">Create New Folder</string>
+    <string name="tv_go_to_parent_folder">⬆️ Go to Parent Folder</string>
+    <string name="tv_folder_item">📁 %1$s</string>
+    <string name="tv_folder_name">Folder Name</string>
+    <string name="tv_create">Create</string>
+    <string name="tv_cancel">Cancel</string>
+
+    <!-- Intent-integration FAQ block labels -->
+    <string name="intent_api_block_title">Intent API</string>
+    <string name="intent_api_package_label">Package:</string>
+    <string name="intent_api_action_label">Action:</string>
+    <string name="intent_api_extra_label">Extra (%1$s):</string>
+    <string name="intent_api_shell_block_title">Shell (ADB)</string>
+
+    <!-- Shared collapse/expand content descriptions -->
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
 </resources>

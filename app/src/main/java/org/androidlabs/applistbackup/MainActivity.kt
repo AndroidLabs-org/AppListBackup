@@ -1,9 +1,12 @@
 package org.androidlabs.applistbackup
 
 import android.annotation.SuppressLint
+import android.content.ClipData
+import android.content.ContentResolver
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.view.View
 import android.widget.FrameLayout
@@ -17,15 +20,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -37,6 +47,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -130,8 +141,17 @@ class MainActivity : FragmentActivity() {
             packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0))
                 .toString()
 
+        // The backup-complete notification carries the file it wrote. Its PendingIntent sets
+        // CLEAR_TOP|SINGLE_TOP, which reaches onNewIntent only while this activity is already
+        // running — and a notification is usually tapped later, once the process is gone. Then
+        // the launch arrives here instead, so handling it only in onNewIntent silently dropped
+        // the URI and left the user on the default tab rather than the backup they tapped.
+        handleViewerIntent(intent)
+
         if (intent?.extras?.getBoolean("RUN_BACKUP") == true) {
-            BackupService.run(this)
+            BackupService.run(this, temporary = false, onComplete = { uri, temp ->
+                viewModel.navigateToBrowse()
+            })
         }
 
         setContent {
@@ -140,6 +160,8 @@ class MainActivity : FragmentActivity() {
                     title = appName,
                     viewModel = viewModel,
                     onBrowse = ::onBrowse,
+                    onShare = ::onShare,
+                    onDelete = ::onDelete,
                     backupContainerId = backupContainerId,
                     browseContainerId = browseContainerId,
                     settingsContainerId = settingsContainerId,
@@ -160,7 +182,7 @@ class MainActivity : FragmentActivity() {
 
     private fun getOrCreateBrowseFragment(): BackupReaderFragment {
         if (browseFragment == null) {
-            browseFragment = BackupReaderFragment(viewModel)
+            browseFragment = BackupReaderFragment()
         }
         return browseFragment!!
     }
@@ -183,14 +205,135 @@ class MainActivity : FragmentActivity() {
         pickFile.launch(types.toTypedArray())
     }
 
+    private fun onShare() {
+        try {
+            val format = viewModel.selectedTempFormat.value
+
+            val uri = if (format != null) {
+                val content = BackupTempStore.get(format) ?: return
+
+                val file = File(
+                    cacheDir,
+                    "shared_backup.${format.extension}"
+                )
+
+                file.writeText(content)
+
+                FileProvider.getUriForFile(
+                    this,
+                    "$packageName.provider",
+                    file
+                )
+            } else {
+                viewModel.uri.value ?: return
+            }
+
+            val finalFormat = format ?: run {
+                val extension = uri.path
+                    ?.substringAfterLast('.', "")
+                    ?.lowercase()
+
+                extension?.let { BackupFormat.fromExtension(it) }
+            }
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = finalFormat?.mimeType() ?: "*/*"
+
+                putExtra(Intent.EXTRA_STREAM, uri)
+
+                clipData = ClipData.newRawUri(
+                    getString(R.string.backup),
+                    uri
+                )
+
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            startActivity(
+                Intent.createChooser(
+                    shareIntent,
+                    getString(R.string.share)
+                )
+            )
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun onDelete() {
+        deleteCurrentFile()
+        viewModel.refreshBackupFiles()
+    }
+
+    private fun deleteCurrentFile() {
+        val uri = viewModel.uri.value ?: return
+        try {
+            val deleted = when (uri.scheme) {
+                ContentResolver.SCHEME_CONTENT -> {
+                    if (DocumentsContract.isDocumentUri(this, uri)) {
+                        try {
+                            DocumentsContract.deleteDocument(contentResolver, uri)
+                            true
+                        } catch (safException: Exception) {
+                            contentResolver.delete(uri, null, null) > 0
+                        }
+                    } else {
+                        contentResolver.delete(uri, null, null) > 0
+                    }
+                }
+
+                ContentResolver.SCHEME_FILE -> {
+                    val path = uri.path
+                    if (path != null) {
+                        File(path).delete()
+                    } else {
+                        false
+                    }
+                }
+
+                else -> {
+                    val path = uri.toString()
+                    File(path).delete()
+                }
+            }
+
+            if (deleted) {
+                Toast.makeText(
+                    this,
+                    resources.getString(R.string.backup_deleted),
+                    Toast.LENGTH_SHORT
+                ).show()
+                viewModel.setUri(null)
+            } else {
+                Toast.makeText(
+                    this,
+                    resources.getString(R.string.unable_delete),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+        } catch (e: Exception) {
+            Toast.makeText(this, resources.getString(R.string.unable_delete), Toast.LENGTH_SHORT)
+                .show()
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        handleViewerIntent(intent)
+    }
 
-        val uriString = intent.getStringExtra("uri")
-        uriString?.let {
-            viewModel.setUri(it.toUri())
-            viewModel.navigateToBrowse()
-        }
+    /**
+     * Opens the viewer on the backup named by the intent, from either entry point.
+     *
+     * Called from onCreate for a cold start and from onNewIntent for a warm one, so the
+     * notification behaves the same whether or not the app was still running.
+     */
+    private fun handleViewerIntent(intent: Intent?) {
+        val uriString = intent?.getStringExtra("uri") ?: return
+        viewModel.setUri(uriString.toUri())
+        viewModel.navigateToBrowse()
     }
 }
 
@@ -261,13 +404,63 @@ private fun BottomNavigationBar(navController: NavController) {
     }
 }
 
+
+@Composable
+fun DeleteConfirmationDialog(
+    onDismissRequest: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        },
+        title = {
+            Text(text = stringResource(id = R.string.delete_backup))
+        },
+        text = {
+            Text(text = stringResource(id = R.string.sure_to_delete_backup))
+        },
+        onDismissRequest = {
+            onDismissRequest()
+        },
+
+        confirmButton = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = { onDismissRequest() }
+                ) {
+                    Text(text = stringResource(id = R.string.cancel))
+                }
+
+                Button(
+                    onClick = { onConfirm() },
+                ) {
+                    Text(text = stringResource(id = R.string.delete))
+                }
+            }
+        },
+        dismissButton = null
+    )
+}
+
 @SuppressLint("ContextCastToActivity")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("AssignedValueIsNeverRead")
 private fun MainScreen(
     title: String,
     viewModel: MainActivityViewModel,
     onBrowse: () -> Unit,
+    onShare: () -> Unit,
+    onDelete: () -> Unit,
     backupContainerId: Int,
     browseContainerId: Int,
     settingsContainerId: Int,
@@ -280,6 +473,26 @@ private fun MainScreen(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
+    val currentUriState by viewModel.uri.collectAsState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        DeleteConfirmationDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            onConfirm = {
+                showDeleteDialog = false
+                onDelete()
+            }
+        )
+    }
+    LaunchedEffect(currentRoute) {
+        when (currentRoute) {
+            Screen.Backup.route -> viewModel.setActiveScreen(MainActivityViewModel.ActiveScreen.BACKUP)
+            Screen.Browse.route -> viewModel.setActiveScreen(MainActivityViewModel.ActiveScreen.READER)
+            Screen.Settings.route -> viewModel.setActiveScreen(MainActivityViewModel.ActiveScreen.SETTINGS)
+        }
+    }
+
     val titleForScreen = when (currentRoute) {
         Screen.Backup.route -> stringResource(R.string.backup)
         Screen.Browse.route -> stringResource(R.string.view_backups)
@@ -287,6 +500,7 @@ private fun MainScreen(
         else -> "Unknown Screen"
     }
 
+    val tempState = BackupTempStore.data.collectAsState()
     val isBrowse = currentRoute == Screen.Browse.route
 
     LaunchedEffect(shouldNavigate) {
@@ -317,7 +531,9 @@ private fun MainScreen(
                                     R.mipmap.ic_launcher
                                 )
                             ),
-                            contentDescription = "App Icon",
+                            // Decorative: the app name is right next to it in the same row,
+                            // so a screen reader announcing "App Icon" here is pure redundancy.
+                            contentDescription = null,
                             modifier = Modifier.size(32.dp)
                         )
                         Column {
@@ -333,12 +549,33 @@ private fun MainScreen(
                 },
                 actions = {
                     if (isBrowse) {
-                        IconButton(onClick = onBrowse) {
+                        if (tempState.value.isEmpty())
+                            IconButton(onClick = {
+                                if (currentUriState != null) {
+                                    showDeleteDialog = true
+                                }
+                            }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.delete)
+                                )
+                            }
+
+                        IconButton(onClick = onShare) {
                             Icon(
-                                painter = painterResource(id = R.drawable.ic_browse),
-                                contentDescription = stringResource(R.string.browse),
+                                imageVector = Icons.Default.Share,
+                                contentDescription = stringResource(R.string.share)
                             )
                         }
+
+                        if (tempState.value.isEmpty())
+                            IconButton(onClick = onBrowse) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_browse),
+                                    contentDescription = stringResource(R.string.browse),
+                                )
+                            }
                     }
                 }
             )
@@ -424,3 +661,4 @@ private fun MainScreen(
         }
     }
 }
+

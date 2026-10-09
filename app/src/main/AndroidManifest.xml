@@ -43,6 +43,34 @@
                 <action android:name="org.androidlabs.applistbackup.BACKUP_ACTION" />
             </intent-filter>
         </receiver>
+
+        <!--
+            The plugin library contributes its own FIRE_SETTING receiver. It
+            retargets the intent at IntentServiceAction and calls
+            startForegroundService(), which Android has refused from a receiver
+            since 12 - the app sits at uidState RCVR and gets no exemption. The
+            library swallows the exception, so the automation app sees a
+            successful action and no backup happens.
+
+            Removing it makes this app's own receiver the one hosts resolve.
+            Note that a host stores the component when the action is configured,
+            so a plugin action set up against an older build points at the
+            component that is gone here and has to be added again.
+        -->
+        <receiver
+            android:name="com.joaomgcd.taskerpluginlibrary.action.BroadcastReceiverAction"
+            tools:node="remove" />
+
+        <receiver
+            android:name=".tasker.TaskerFireReceiver"
+            android:enabled="true"
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
+                <action android:name="com.twofortyfouram.locale.intent.action.FIRE_SETTING" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".BackupWidget"
             android:exported="false">
@@ -64,6 +92,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppListBackup">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -85,21 +114,25 @@
         <activity
             android:name=".faq.InstructionsActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppListBackup" />
 
         <activity
             android:name=".docs.DocsViewerActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppListBackup" />
 
         <activity
             android:name=".RunBackupActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppListBackup" />
 
         <activity
             android:name=".settings.tvpicker.TvFolderPickerActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppListBackup" />
 
         <provider
@@ -115,6 +148,7 @@
         <activity
             android:name=".tasker.TaskerPlugin"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:icon="@mipmap/ic_launcher">
             <intent-filter>
                 <action android:name="com.twofortyfouram.locale.intent.action.EDIT_SETTING" />
@@ -124,7 +158,27 @@
         <activity
             android:name=".settings.data.BackupDataActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.AppListBackup" />
+
+        <activity
+            android:name=".settings.format.BackupFormatActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppListBackup" />
+
+        <activity
+            android:name=".settings.sort.BackupSortActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppListBackup" />
+
+        <activity
+            android:name=".settings.excluded.ExcludedAppsActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppListBackup" />
+
     </application>
 
 </manifest>

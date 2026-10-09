@@ -1,10 +1,9 @@
 package org.androidlabs.applistbackup.data
 
-import org.androidlabs.applistbackup.data.BackupFormat.entries
 
 enum class BackupFormat(
     val value: String,
-    private val extension: String,
+    val extension: String,
     private val mimeType: String
 ) {
     HTML("HTML", "html", "text/html"),
@@ -16,14 +15,17 @@ enum class BackupFormat(
     fun mimeType(): String = mimeType
 
     companion object {
-        fun fromString(value: String): BackupFormat =
-            fromStringOptional(value) ?: throw IllegalArgumentException("Unknown format: $value")
+        // Accepts the display name ("Markdown") or the file extension ("md") —
+        // the output files are named by extension, so that's the natural thing
+        // for an automation author to type, and it silently fell back to the
+        // saved setting instead of being recognised.
+        fun fromString(value: String): BackupFormat? =
+            entries.find {
+                it.value.equals(value, ignoreCase = true) ||
+                        it.extension.equals(value, ignoreCase = true)
+            }
 
-        fun fromStringOptional(value: String): BackupFormat? =
-            entries.find { it.value == value }
-
-        fun fromExtension(extension: String): BackupFormat =
-            entries.find { it.extension == extension.lowercase() }
-                ?: throw IllegalArgumentException("Unknown extension: $extension")
+        fun fromExtension(extension: String): BackupFormat? =
+            entries.find { it.extension.equals(extension, ignoreCase = true) }
     }
 }

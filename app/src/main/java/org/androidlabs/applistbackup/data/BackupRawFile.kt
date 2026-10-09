@@ -48,7 +48,12 @@ class BackupRawFile private constructor(
             }
 
             file != null -> {
-                val newFile = File(file.parentFile, fileName)
+                // Inside the chosen folder, not beside it. This used to be file.parentFile,
+                // which wrote every TV backup one directory above the folder the user picked,
+                // where the app's own listing could never find it — so the viewer stayed
+                // empty and the retention limit never deleted anything. deleteFiles already
+                // resolved names against `file`, so create and delete disagreed.
+                val newFile = File(file, fileName)
                 try {
                     if (newFile.createNewFile()) {
                         fromFile(newFile, context)
@@ -140,6 +145,31 @@ class BackupRawFile private constructor(
             }
 
             else -> throw IllegalStateException("Neither file nor documentFile is available")
+        }
+    }
+
+    fun deleteFile(fileName: String) = deleteFiles(setOf(fileName))
+
+    /**
+     * Deletes every named file using a single directory listing.
+     *
+     * `DocumentFile.listFiles()` is a Storage Access Framework round trip whose cost grows
+     * with the folder, and deleting one name at a time paid it once per name. A backup that
+     * writes three formats was doing six listings, which measured 10.5 s against 0.5 s for a
+     * single format — twenty times the cost, for work that should have been about three.
+     */
+    fun deleteFiles(fileNames: Set<String>) {
+        if (fileNames.isEmpty()) return
+        when {
+            documentFile != null -> {
+                documentFile.listFiles()
+                    .filter { it.name in fileNames }
+                    .forEach { it.delete() }
+            }
+
+            file != null -> {
+                fileNames.forEach { File(file, it).delete() }
+            }
         }
     }
 

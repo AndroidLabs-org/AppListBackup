@@ -2,322 +2,375 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App List Backup</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
-      color: #333;
-      margin: 0;
-      padding: 16px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App List Backup</title>
+    <style>
+        :root { color-scheme: light dark; }
 
-    .controls-container {
-      margin-bottom: 16px;
-    }
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f5f5f5;
+          color: #333;
+          margin: 0;
+          padding: 16px;
+          max-width: 800px;
+          margin: 0 auto;
+        }
 
-    .statistics-grid {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      padding: 8px;
-      border-radius: 8px;
-      display: flex;
-      gap: 4px;
-      flex-direction: column;
-      margin-bottom: 8px;
-    }
+        .controls-container {
+          margin-bottom: 16px;
+        }
 
-    .statistics-grid-columns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      column-gap: 16px;
-      row-gap: 4px;
-      align-items: center;
-    }
+        .statistics-grid {
+          background-color: #fff;
+          border: 1px solid #ccc;
+          padding: 8px;
+          border-radius: 8px;
+          display: flex;
+          gap: 4px;
+          flex-direction: column;
+          margin-bottom: 8px;
+        }
 
-    .stat-item {
-      display: flex;
-      gap: 4px;
-    }
+        .statistics-grid-columns {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          column-gap: 16px;
+          row-gap: 4px;
+          align-items: center;
+        }
 
-    .stat-item b {
-      font-weight: 500;
-      min-width: 0;
-    }
+        .stat-item {
+          display: flex;
+          gap: 4px;
+        }
 
-    .stat-item p {
-      margin: 0;
-      min-width: 0;
-      color: #666;
-      text-align: right;
-      flex: 1;
-    }
+        .stat-item b {
+          font-weight: 500;
+          min-width: 0;
+        }
 
-    .controls {
-      position: relative;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      gap: 8px;
-    }
+        .stat-item p {
+          margin: 0;
+          min-width: 0;
+          color: #666;
+          text-align: right;
+          flex: 1;
+        }
 
-    .controls input {
-      flex-grow: 1;
-      padding: 8px 24px 8px 8px;
-      position: relative;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
+        .controls {
+          position: relative;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+          gap: 8px;
+        }
 
-    .clear-button {
-      display: none;
-      position: absolute;
-      justify-content: center;
-      align-items: center;
-      right: 0;
-      top: 0;
-      height: 100%;
-      cursor: pointer;
-      aspect-ratio: 1 / 1;
-    }
+        .controls input {
+          flex-grow: 1;
+          padding: 8px 24px 8px 8px;
+          position: relative;
+          border: 1px solid #ccc;
+          border-radius: 8px;
+        }
 
-    .controls button {
-      padding: 8px;
-      flex: 1;
-      border-radius: 8px;
-      border: none;
-      background-color: #ccc;
+        .clear-button {
+          display: none;
+          position: absolute;
+          justify-content: center;
+          align-items: center;
+          right: 0;
+          top: 0;
+          height: 100%;
+          cursor: pointer;
+          aspect-ratio: 1 / 1;
+        }
 
-      &:hover {
-        background-color: #aaa;
-      }
+        .controls button {
+          padding: 8px;
+          flex: 1;
+          border-radius: 8px;
+          border: none;
+          background-color: #ccc;
 
-      &:active {
-        background-color: #888;
-      }
-    }
+          &:hover {
+            background-color: #aaa;
+          }
 
-    .app-list {
-      width: 100%;
-      border-collapse: collapse;
-    }
+          &:active {
+            background-color: #888;
+          }
+        }
 
-    .app-name {
-      font-size: 16px;
-    }
+        .app-list {
+          width: 100%;
+          border-collapse: collapse;
+        }
 
-    .app-item {
-      display: flex;
-      align-items: flex-start;
-      padding: 8px;
-      background-color: #fff;
-      border: 1px solid #ccc;
-      margin-bottom: 8px;
-      border-radius: 8px;
-    }
+        .app-name {
+          font-size: 16px;
+        }
 
-    .app-item img {
-      width: 48px;
-      height: 48px;
-      margin-right: 8px;
-    }
+        .app-item {
+          display: flex;
+          align-items: flex-start;
+          padding: 8px;
+          background-color: #fff;
+          border: 1px solid #ccc;
+          margin-bottom: 8px;
+          border-radius: 8px;
+        }
 
-    .app-details {
-      flex: 1;
-      min-width: 0;
-      line-break: break-all;
-      word-wrap: break-word;
-    }
+        .app-item img {
+          width: 48px;
+          height: 48px;
+          margin-right: 8px;
+        }
 
-    .placeholder {
-      text-align: center;
-      padding: 16px;
-      font-size: 18px;
-      color: #666;
-    }
+        .app-details {
+          flex: 1;
+          min-width: 0;
+          line-break: break-all;
+          word-wrap: break-word;
+        }
 
-    .filter-modal,
-    .sort-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      justify-content: center;
-      align-items: center;
-    }
+        .placeholder {
+          text-align: center;
+          padding: 16px;
+          font-size: 18px;
+          color: #666;
+        }
 
-    .modal-content {
-      background: #fff;
-      padding: 16px;
-      border-radius: 5px;
-      width: 80%;
-      max-width: 400px;
-    }
+        .filter-modal,
+        .sort-modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          justify-content: center;
+          align-items: center;
+        }
 
-    .modal-content h3 {
-      margin-top: 0;
-    }
+        .modal-content {
+          background: #fff;
+          padding: 16px;
+          border-radius: 5px;
+          width: 80%;
+          max-width: 400px;
+        }
 
-    .modal-content label {
-      display: block;
-      margin-bottom: 8px;
-    }
-  </style>
+        .modal-content h3 {
+          margin-top: 0;
+        }
+
+        .modal-content label {
+          display: block;
+          margin-bottom: 8px;
+        }
+
+        /* Follow the reader's theme. The report is a shareable file, so the
+           media query applies in a desktop browser; the app's viewer sets
+           data-theme explicitly because its WebView cannot infer the app
+           theme on its own. */
+        @media (prefers-color-scheme: dark) {
+          body { background-color: #121212; color: #e6e6e6; }
+          .statistics-grid, .app-item, .modal-content { background-color: #1e1e1e; border-color: #3a3a3a; }
+          .app-item img { background-color: transparent; }
+          input[type="text"], input[type="search"] { background-color: #1e1e1e; color: #e6e6e6; border-color: #3a3a3a; }
+          button { background-color: #333; color: #e6e6e6; }
+          button:hover { background-color: #444; }
+          a { color: #9db9ff; }
+          hr { border-color: #3a3a3a; }
+        }
+
+        /* Flat selectors, not nested — a bare type selector (body, button…) as
+           the first token of a nested rule is ambiguous per the CSS Nesting
+           spec without a leading '&', and support for it varies across the
+           WebView versions this report actually gets opened in. */
+        :root[data-theme="dark"] body { background-color: #121212; color: #e6e6e6; }
+        :root[data-theme="dark"] .statistics-grid,
+        :root[data-theme="dark"] .app-item,
+        :root[data-theme="dark"] .modal-content { background-color: #1e1e1e; border-color: #3a3a3a; }
+        :root[data-theme="dark"] .app-item img { background-color: transparent; }
+        :root[data-theme="dark"] input[type="text"],
+        :root[data-theme="dark"] input[type="search"] { background-color: #1e1e1e; color: #e6e6e6; border-color: #3a3a3a; }
+        :root[data-theme="dark"] button { background-color: #333; color: #e6e6e6; }
+        :root[data-theme="dark"] button:hover { background-color: #444; }
+        :root[data-theme="dark"] a { color: #9db9ff; }
+        :root[data-theme="dark"] hr { border-color: #3a3a3a; }
+    </style>
 </head>
 
 <body>
-  <div>
+<div>
     <div class="controls">
-      <button id="toggle-statistics-button" onclick="toggleStatistics()"><!-- LOCALISATION_SHOW_LESS --></button>
+        <button id="toggle-statistics-button" onclick="toggleStatistics()">
+            <!-- LOCALISATION_SHOW_LESS --></button>
     </div>
     <div class="statistics-grid" id="statistics-container">
-      <div class="stat-item">
-        <b><!-- LOCALISATION_CREATED_AT --></b>
-        <p><!-- BACKUP_TIME_PLACEHOLDER --></p>
-      </div>
-      <div class="stat-item">
-        <b><!-- LOCALISATION_BACKUP_DURATION --></b>
-        <p><!-- BACKUP_DURATION_PLACEHOLDER --></p>
-      </div>
-      <div class="stat-item">
-        <b><!-- LOCALISATION_TRIGGER_TYPE --></b>
-        <p><!-- TRIGGER_TYPE_PLACEHOLDER --></p>
-      </div>
-      <b><!-- LOCALISATION_BACKUP_APPS --></b>
-      <div class="statistics-grid-columns">
         <div class="stat-item">
-          <b><!-- LOCALISATION_TOTAL_APPS_COUNT --></b>
-          <p><!-- TOTAL_APPS_COUNT_PLACEHOLDER --></p>
+            <b><!-- LOCALISATION_CREATED_AT --></b>
+            <p><!-- BACKUP_TIME_PLACEHOLDER --></p>
         </div>
         <div class="stat-item">
-          <b><!-- LOCALISATION_USER_APPS_COUNT --></b>
-          <p><!-- USER_APPS_COUNT_PLACEHOLDER --></p>
+            <b><!-- LOCALISATION_BACKUP_DURATION --></b>
+            <p><!-- BACKUP_DURATION_PLACEHOLDER --></p>
         </div>
         <div class="stat-item">
-          <b><!-- LOCALISATION_SYSTEM_APPS_COUNT --></b>
-          <p><!-- SYSTEM_APPS_COUNT_PLACEHOLDER --></p>
+            <b><!-- LOCALISATION_TRIGGER_TYPE --></b>
+            <p><!-- TRIGGER_TYPE_PLACEHOLDER --></p>
         </div>
-      </div>
-      <b><!-- LOCALISATION_APP_STATES --></b>
-      <div class="statistics-grid-columns">
-        <div class="stat-item">
-          <b><!-- LOCALISATION_ENABLED_APPS_COUNT --></b>
-          <p><!-- ENABLED_APPS_COUNT_PLACEHOLDER --></p>
+        <b><!-- LOCALISATION_BACKUP_APPS --></b>
+        <div class="statistics-grid-columns">
+            <div class="stat-item">
+                <b><!-- LOCALISATION_TOTAL_APPS_COUNT --></b>
+                <p><!-- TOTAL_APPS_COUNT_PLACEHOLDER --></p>
+            </div>
+            <div class="stat-item">
+                <b><!-- LOCALISATION_USER_APPS_COUNT --></b>
+                <p><!-- USER_APPS_COUNT_PLACEHOLDER --></p>
+            </div>
+            <div class="stat-item">
+                <b><!-- LOCALISATION_SYSTEM_APPS_COUNT --></b>
+                <p><!-- SYSTEM_APPS_COUNT_PLACEHOLDER --></p>
+            </div>
         </div>
-        <div class="stat-item">
-          <b><!-- LOCALISATION_DISABLED_APPS_COUNT --></b>
-          <p><!-- DISABLED_APPS_COUNT_PLACEHOLDER --></p>
+        <b><!-- LOCALISATION_APP_STATES --></b>
+        <div class="statistics-grid-columns">
+            <div class="stat-item">
+                <b><!-- LOCALISATION_ENABLED_APPS_COUNT --></b>
+                <p><!-- ENABLED_APPS_COUNT_PLACEHOLDER --></p>
+            </div>
+            <div class="stat-item">
+                <b><!-- LOCALISATION_DISABLED_APPS_COUNT --></b>
+                <p><!-- DISABLED_APPS_COUNT_PLACEHOLDER --></p>
+            </div>
+            <div class="stat-item" id="installed-apps-count" style="display: none;">
+                <b><!-- LOCALISATION_INSTALLED_APPS_COUNT --></b>
+                <p></p>
+            </div>
+            <div class="stat-item" id="uninstalled-apps-count" style="display: none;">
+                <b><!-- LOCALISATION_UNINSTALLED_APPS_COUNT --></b>
+                <p></p>
+            </div>
         </div>
-        <div class="stat-item" id="installed-apps-count" style="display: none;">
-          <b><!-- LOCALISATION_INSTALLED_APPS_COUNT --></b>
-          <p></p>
+        <b><!-- LOCALISATION_INSTALL_SOURCE --></b>
+        <div class="statistics-grid-columns">
+            <!-- INSTALLERS_STATISTICS -->
         </div>
-        <div class="stat-item" id="uninstalled-apps-count" style="display: none;">
-          <b><!-- LOCALISATION_UNINSTALLED_APPS_COUNT --></b>
-          <p>/p>
+        <div id="environment-info">
+            <!-- ENVIRONMENT_INFO_PLACEHOLDER -->
         </div>
-      </div>
-      <b><!-- LOCALISATION_INSTALL_SOURCE --></b>
-      <div class="statistics-grid-columns">
-        <!-- INSTALLERS_STATISTICS -->
-      </div>
     </div>
-  </div>
-  <div class="controls-container">
+</div>
+<div class="controls-container">
     <div class="controls">
-      <input type="text" id="search-input" placeholder="<!-- LOCALISATION_SEARCH_PLACEHOLDER -->">
-      <span class="clear-button" onclick="clearSearch()">✖</span>
+        <input type="text" id="search-input" placeholder="<!-- LOCALISATION_SEARCH_PLACEHOLDER -->">
+        <span class="clear-button" onclick="clearSearch()">✖</span>
     </div>
     <div class="controls">
-      <button onclick="toggleSortModal()"><!-- LOCALISATION_SORT_OPTIONS --></button>
-      <button onclick="toggleFilterModal()"><!-- LOCALISATION_FILTER_OPTIONS --></button>
+        <button onclick="toggleSortModal()"><!-- LOCALISATION_SORT_OPTIONS --></button>
+        <button onclick="toggleDisplayOptionsModal()"><!-- LOCALISATION_SHOW_OPTIONS --></button>
+        <button onclick="toggleFilterModal()"><!-- LOCALISATION_FILTER_OPTIONS --></button>
     </div>
-  </div>
-  <div class="app-list" id="app-list">
+</div>
+<div class="app-list" id="app-list">
     <!-- APP_ITEMS_PLACEHOLDER -->
-  </div>
-  <div id="no-items-placeholder" class="placeholder" style="display:none;">
+</div>
+<div id="no-items-placeholder" class="placeholder" style="display:none;">
     <!-- LOCALISATION_NO_ITEMS_PLACEHOLDER -->
-  </div>
+</div>
 
-  <!-- Sort Modal -->
-  <div class="sort-modal" id="sort-modal">
+<!-- Sort Modal -->
+<div class="sort-modal" id="sort-modal">
     <div class="modal-content">
-      <h3><!-- LOCALISATION_SORTING --></h3>
-      <label>
-        <input type="radio" name="sort" value="default" onclick="sortBy('default')" checked>
-        <!-- LOCALISATION_SORT_BY_DEFAULT -->
-      </label>
-      <label>
-        <input type="radio" name="sort" value="installTime" onclick="sortBy('installTime')">
-        <!-- LOCALISATION_SORT_BY_INSTALL_TIME -->
-      </label>
-      <label>
-        <input type="radio" name="sort" value="updateTime" onclick="sortBy('updateTime')">
-        <!-- LOCALISATION_SORT_BY_UPDATE_TIME -->
-      </label>
-      <label>
-        <input type="radio" name="sort" value="appName" onclick="sortBy('appName')">
-        <!-- LOCALISATION_SORT_BY_APP_NAME -->
-      </label>
-      <label>
-        <input type="radio" name="sort" value="packageName" onclick="sortBy('packageName')">
-        <!-- LOCALISATION_SORT_BY_PACKAGE_NAME -->
-      </label>
-      <label>
-        <input type="radio" name="sort" value="installer" onclick="sortBy('installer')">
-        <!-- LOCALISATION_SORT_BY_INSTALLER -->
-      </label>
-      <br />
-      <div>
-        <h3><!-- LOCALISATION_ORDER --></h3>
+
+        <h3><!-- LOCALISATION_SORTING --></h3>
         <label>
-          <input type="radio" name="sortOrder" value="asc" onclick="setSortOrder('asc')" checked>
-          <!-- LOCALISATION_ORDER_ASCENDING -->
+            <input type="radio" name="sort" value="default" onclick="sortBy('default')" checked>
+            <!-- LOCALISATION_SORT_BY_DEFAULT -->
         </label>
         <label>
-          <input type="radio" name="sortOrder" value="desc" onclick="setSortOrder('desc')">
-          <!-- LOCALISATION_ORDER_DESCENDING -->
+            <input type="radio" name="sort" value="installTime" onclick="sortBy('installTime')">
+            <!-- LOCALISATION_SORT_BY_INSTALL_TIME -->
         </label>
-      </div>
-      <button onclick="toggleSortModal()"><!-- LOCALISATION_CLOSE_BUTTON --></button>
+        <label>
+            <input type="radio" name="sort" value="updateTime" onclick="sortBy('updateTime')">
+            <!-- LOCALISATION_SORT_BY_UPDATE_TIME -->
+        </label>
+        <label>
+            <input type="radio" name="sort" value="appName" onclick="sortBy('appName')">
+            <!-- LOCALISATION_SORT_BY_APP_NAME -->
+        </label>
+        <label>
+            <input type="radio" name="sort" value="packageName" onclick="sortBy('packageName')">
+            <!-- LOCALISATION_SORT_BY_PACKAGE_NAME -->
+        </label>
+        <label>
+            <input type="radio" name="sort" value="installer" onclick="sortBy('installer')">
+            <!-- LOCALISATION_SORT_BY_INSTALLER -->
+        </label>
+        <br/>
+        <div>
+            <h3><!-- LOCALISATION_ORDER --></h3>
+            <label>
+                <input type="radio" name="sortOrder" value="asc" onclick="setSortOrder('asc')"
+                       checked>
+                <!-- LOCALISATION_ORDER_ASCENDING -->
+            </label>
+            <label>
+                <input type="radio" name="sortOrder" value="desc" onclick="setSortOrder('desc')">
+                <!-- LOCALISATION_ORDER_DESCENDING -->
+            </label>
+        </div>
+        <button onclick="toggleSortModal()"><!-- LOCALISATION_CLOSE_BUTTON --></button>
     </div>
-  </div>
+</div>
 
-  <!-- Filter Modal -->
-  <div class="filter-modal" id="filter-modal">
+<!-- Filter Modal -->
+<div class="filter-modal" id="filter-modal">
     <div class="modal-content">
-      <h3><!-- LOCALISATION_APPS_FILTERING --></h3>
-      <label>
-        <input type="checkbox" id="filter-user-apps" checked> <!-- LOCALISATION_USER_APPS -->
-      </label>
-      <label>
-        <input type="checkbox" id="filter-system-apps" checked> <!-- LOCALISATION_SYSTEM_APPS -->
-      </label>
-      <label>
-        <input type="checkbox" id="filter-enabled-apps" checked> <!-- LOCALISATION_ENABLED_APPS -->
-      </label>
-      <label>
-        <input type="checkbox" id="filter-disabled-apps" checked> <!-- LOCALISATION_DISABLED_APPS -->
-      </label>
-      <label style="display: none;">
-        <input type="checkbox" id="filter-installed-apps" checked> <!-- LOCALISATION_INSTALLED_APPS -->
-      </label>
-      <!-- INSTALLERS_FILTERS -->
-      <button onclick="applyFilters()"><!-- LOCALISATION_APPLY_FILTERS_BUTTON --></button>
-      <button onclick="toggleFilterModal()"><!-- LOCALISATION_CLOSE_BUTTON --></button>
+        <h3><!-- LOCALISATION_APPS_FILTERING --></h3>
+        <label>
+            <input type="checkbox" id="filter-user-apps" checked> <!-- LOCALISATION_USER_APPS -->
+        </label>
+        <label>
+            <input type="checkbox" id="filter-system-apps" checked>
+            <!-- LOCALISATION_SYSTEM_APPS -->
+        </label>
+        <label>
+            <input type="checkbox" id="filter-enabled-apps" checked>
+            <!-- LOCALISATION_ENABLED_APPS -->
+        </label>
+        <label>
+            <input type="checkbox" id="filter-disabled-apps" checked>
+            <!-- LOCALISATION_DISABLED_APPS -->
+        </label>
+        <label id="filter-installed-apps-label" style="display: none;">
+            <input type="checkbox" id="filter-installed-apps" checked>
+            <!-- LOCALISATION_INSTALLED_APPS -->
+        </label>
+        <!-- INSTALLERS_FILTERS -->
+        <button onclick="applyFilters()"><!-- LOCALISATION_APPLY_FILTERS_BUTTON --></button>
+        <button onclick="toggleFilterModal()"><!-- LOCALISATION_CLOSE_BUTTON --></button>
     </div>
-  </div>
+</div>
 
-  <script>
+<!-- Display Options Modal -->
+<div class="filter-modal" id="display-options-modal">
+    <div class="modal-content">
+        <h3><!-- LOCALISATION_VISIBLE_APP_INFO --></h3>
+        <!-- DISPLAY_FIELD_TOGGLES -->
+        <button onclick="toggleDisplayOptionsModal()"><!-- LOCALISATION_CLOSE_BUTTON --></button>
+    </div>
+</div>
+
+<script>
     const appList = document.getElementById('app-list');
     const installerFiltersData = {<!-- INSTALLERS_FILTERS_DATA -->};
     const noItemsPlaceholder = document.getElementById('no-items-placeholder');
@@ -406,17 +459,23 @@
         const isDisabled = item.dataset.isEnabled === 'false';
         const installer = item.dataset.installer;
 
-        const showUserApp = includeUserApps && isUserApp;
-        const showSystemApp = includeSystemApps && isSystemApp;
-        const showEnabledApp = includeEnabledApps && isEnabled;
-        const showDisabledApp = includeDisabledApps && isDisabled;
-        const showInstallerApp = activeInstallerFilters.includes(installer);
+       const typeActive = includeUserApps || includeSystemApps;
+       const stateActive = includeEnabledApps || includeDisabledApps;
+       const installerActive = activeInstallerFilters.length > 0;
 
-        let isVisible =
-          (showUserApp || showSystemApp) &&
-          (showEnabledApp || showDisabledApp) &&
-          showInstallerApp;
-        if (isVisible && !includeInstalledApps) {
+       const typeMatch = !typeActive ||
+            (includeUserApps && isUserApp) ||
+            (includeSystemApps && isSystemApp);
+
+       const stateMatch = !stateActive ||
+            (includeEnabledApps && isEnabled) ||
+            (includeDisabledApps && isDisabled);
+
+       const installerMatch = !installerActive || activeInstallerFilters.includes(installer);
+
+       let isVisible = typeMatch && stateMatch && installerMatch;
+
+        if (isVisible && !includeInstalledApps && installedApps.length) {
           if (installedApps.includes(item.dataset.packageName)) {
             isVisible = false;
           }
@@ -473,8 +532,8 @@
     }
 
     function setInstalledApps(apps) {
-      const filter = document.getElementById('filter-installed-apps');
-      filter.parentNode.style.display = '';
+      const filter = document.getElementById('filter-installed-apps-label');
+      if (filter) filter.style.display = '';
       installedApps = apps;
 
       let installedAppsCount = 0;
@@ -499,7 +558,26 @@
         uninstalledItem.textContent = uninstalledAppsCount;
       }
     }
-  </script>
+
+    function toggleDisplayOptionsModal() {
+        const modal = document.getElementById('display-options-modal');
+        modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.field-toggle').forEach(toggle => {
+            toggle.addEventListener('change', () => {
+                const field = toggle.dataset.field;
+                const visible = toggle.checked;
+                document.querySelectorAll(`.field-${field}`).forEach(el => {
+                    el.style.display = visible ? '' : 'none';
+                });
+            });
+        });
+    });
+
+</script>
 </body>
 
 </html>

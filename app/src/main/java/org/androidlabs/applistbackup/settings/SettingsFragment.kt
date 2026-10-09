@@ -1,6 +1,7 @@
 package org.androidlabs.applistbackup.settings
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -22,21 +23,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableFloatStateOf
@@ -45,12 +52,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,13 +72,18 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import org.androidlabs.applistbackup.BackupService
 import org.androidlabs.applistbackup.R
-import org.androidlabs.applistbackup.data.BackupFormat
+import org.androidlabs.applistbackup.data.BackupApp
 import org.androidlabs.applistbackup.docs.DocsViewerActivity
 import org.androidlabs.applistbackup.faq.InstructionsActivity
 import org.androidlabs.applistbackup.settings.data.BackupDataActivity
+import org.androidlabs.applistbackup.settings.excluded.ExcludedAppsActivity
+import org.androidlabs.applistbackup.settings.format.BackupFormatActivity
+import org.androidlabs.applistbackup.settings.sort.BackupSortActivity
 import org.androidlabs.applistbackup.settings.tvpicker.TvFolderPickerActivity
+import org.androidlabs.applistbackup.ui.CheckboxRow
 import org.androidlabs.applistbackup.utils.Utils.isTV
 import java.io.File
+import kotlin.String
 
 class SettingsFragment : Fragment() {
     private val viewModel: SettingsViewModel by viewModels()
@@ -105,6 +121,12 @@ class SettingsFragment : Fragment() {
 
     private var version: String = ""
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.refresh()
+    }
+
+    @SuppressLint("WrongConstant")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -139,7 +161,10 @@ class SettingsFragment : Fragment() {
                     onChangeDestination = ::onChangeDestination,
                     onFAQ = ::onFAQ,
                     openDoc = ::openDoc,
-                    onBackupDataSettings = ::onBackupDataSettings
+                    onBackupDataSettings = ::onBackupDataSettings,
+                    onBackupFormatSettings = ::onBackupFormatSettings,
+                    onBackupSortSettings = ::onBackupSortSettings,
+                    onBackupExcludedAppsSettings = ::onBackupExcludedAppsSettings
                 )
             }
         }
@@ -147,6 +172,21 @@ class SettingsFragment : Fragment() {
 
     private fun onBackupDataSettings() {
         val intent = Intent(requireContext(), BackupDataActivity::class.java)
+        startActivity(intent)
+    }
+
+    private fun onBackupFormatSettings() {
+        val intent = Intent(requireContext(), BackupFormatActivity::class.java)
+        startActivity(intent)
+    }
+
+    private fun onBackupSortSettings() {
+        val intent = Intent(requireContext(), BackupSortActivity::class.java)
+        startActivity(intent)
+    }
+
+    private fun onBackupExcludedAppsSettings() {
+        val intent = Intent(requireContext(), ExcludedAppsActivity::class.java)
         startActivity(intent)
     }
 
@@ -219,6 +259,7 @@ class SettingsFragment : Fragment() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -227,14 +268,25 @@ private fun SettingsScreen(
     onFAQ: () -> Unit,
     openDoc: (nameId: Int, fileName: String) -> Unit,
     onBackupDataSettings: () -> Unit,
+    onBackupFormatSettings: () -> Unit,
+    onBackupSortSettings: () -> Unit,
+    onBackupExcludedAppsSettings: () -> Unit
 ) {
     val backupUri = viewModel.backupUri.observeAsState()
-    val backupFormat = viewModel.backupFormats.observeAsState(initial = setOf(BackupFormat.HTML))
+    val backupFormat by viewModel.backupFormats.collectAsState()
     val backupLimit = viewModel.backupLimit.observeAsState(initial = -1)
-
     val isUnlimited = backupLimit.value == -1
-
+    val backupApps by viewModel.backupApps.observeAsState(
+        initial = setOf(
+            BackupApp.USER,
+            BackupApp.SYSTEM,
+            BackupApp.DISABLED
+        )
+    )
+    val includeSystemInfo by viewModel.includeSystemInfo.collectAsState()
     var backupLimitFloat by remember { mutableFloatStateOf(backupLimit.value.toFloat()) }
+
+    val createLatestEnabled = viewModel.createLatestBackupEnabled.collectAsState()
 
     val (inputText, setInputText) = remember {
         mutableStateOf(
@@ -255,56 +307,258 @@ private fun SettingsScreen(
     val scrollState = rememberScrollState()
 
     Column(modifier = Modifier.verticalScroll(scrollState)) {
-        SettingsRow(
-            title = stringResource(id = R.string.destination),
-            subtitle = null,
-            iconView = {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_folder_24),
-                    contentDescription = stringResource(id = R.string.destination),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
-                )
-            },
-            rightView = {
-                Button(onClick = onChangeDestination) {
-                    Text(text = stringResource(if (backupUri.value == null) R.string.choose else R.string.change))
-                }
-            },
-            footerView = {
-                Text(
-                    text = if (backupUri.value !== null) BackupService.getReadablePathFromUri(
-                        localContext,
-                        backupUri.value
-                    ) else stringResource(R.string.none),
-                    fontSize = 12.sp,
-                )
-            }
-        )
 
-        SettingsRow(
-            title = stringResource(id = R.string.backup_format),
-            subtitle = null,
-            iconView = {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_file_24),
-                    contentDescription = stringResource(id = R.string.backup_format),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
-                )
-            },
-            rightView = {
-                MultiFormatSelector(
-                    selectedFormats = backupFormat.value,
-                    onFormatsChanged = {
-                        viewModel.saveBackupFormats(it)
+        Text(
+            text = stringResource(R.string.settings),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        ) {
+            Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                SettingsRow(
+                    title = stringResource(id = R.string.save_location),
+                    subtitle = null,
+                    onClick = onChangeDestination,
+                    iconView = {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_folder_24),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    footerView = {
+                        Text(
+                            text = if (backupUri.value !== null) BackupService.getReadablePathFromUri(
+                                localContext,
+                                backupUri.value
+                            ) else stringResource(R.string.none),
+                            fontSize = 12.sp,
+                        )
                     }
                 )
-            },
-            footerView = {
-                Text(
-                    text = backupFormat.value.joinToString(", "),
-                    fontSize = 12.sp,
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                SettingsRow(
+                    title = stringResource(id = R.string.backup_format),
+                    subtitle = null,
+                    iconView = {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_file_24),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    footerView = {
+                        Text(
+                            text = backupFormat.joinToString(", "),
+                            fontSize = 12.sp,
+                        )
+                    },
+                    onClick = onBackupFormatSettings
+                )
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                SettingsRow(
+                    title = stringResource(id = R.string.backup_data_settings),
+                    subtitle = null,
+                    iconView = {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_dataset_24),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = onBackupDataSettings
+                )
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                SettingsRow(
+                    title = stringResource(id = R.string.backup_sort_settings),
+                    subtitle = null,
+                    iconView = {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_sort_24),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = onBackupSortSettings
+                )
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                CheckboxRow(
+                    checked = includeSystemInfo,
+                    onCheckedChange = { isChecked ->
+                        viewModel.saveIncludeSystemInfo(isChecked)
+                    },
+                    label = stringResource(R.string.include_system_info)
                 )
             }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = stringResource(R.string.apps_to_backup),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+
+
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        ) {
+            Column(modifier = Modifier.padding(vertical = 0.dp)) {
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = stringResource(R.string.app_types),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                CheckboxRow(
+                    checked = backupApps.contains(BackupApp.USER),
+                    onCheckedChange = { isChecked ->
+                        val newSet = backupApps.toMutableSet().apply {
+                            if (isChecked) add(BackupApp.USER)
+                            else remove(BackupApp.USER)
+                        }
+                        viewModel.saveBackupApps(newSet)
+                    },
+                    label = stringResource(R.string.user_apps)
+                )
+
+                CheckboxRow(
+                    checked = backupApps.contains(BackupApp.SYSTEM),
+                    onCheckedChange = { isChecked ->
+                        val newSet = backupApps.toMutableSet().apply {
+                            if (isChecked) add(BackupApp.SYSTEM)
+                            else remove(BackupApp.SYSTEM)
+                        }
+                        viewModel.saveBackupApps(newSet)
+                    },
+                    label = stringResource(R.string.system_apps)
+                )
+
+                SettingsRow(
+                    title = stringResource(id = R.string.excluded_apps),
+                    subtitle = null,
+                    iconView = {
+                        Image(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = onBackupExcludedAppsSettings
+                )
+
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(horizontal = 14.dp)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.options),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                CheckboxRow(
+                    checked = backupApps.contains(BackupApp.DISABLED),
+                    onCheckedChange = { isChecked ->
+                        val newSet = backupApps.toMutableSet().apply {
+                            if (isChecked) add(BackupApp.DISABLED)
+                            else remove(BackupApp.DISABLED)
+                        }
+                        viewModel.saveBackupApps(newSet)
+                    },
+                    label = stringResource(R.string.include_disabled_apps)
+                )
+
+                Text(
+                    text = stringResource(R.string.disabled_descr),
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
+
+        CheckboxRow(
+            checked = createLatestEnabled.value,
+            onCheckedChange = { isChecked ->
+                viewModel.saveCreateLatestBackupEnabled(isChecked)
+            },
+            label = stringResource(R.string.also_latest)
         )
 
         SettingsRow(
@@ -313,13 +567,24 @@ private fun SettingsScreen(
             iconView = {
                 Image(
                     painter = painterResource(id = R.drawable.ic_history_24),
-                    contentDescription = stringResource(id = R.string.keep_backups),
+                    contentDescription = null,
                     colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
                 )
             },
             rightView = {
+                val unlimitedBackupsLabel = stringResource(R.string.unlimited_backups_toggle)
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.unlimited))
+                    // Follows the switch. Rendered unconditionally it kept saying
+                    // "Unlimited" while a numeric limit was in force, directly
+                    // contradicting the field below it.
+                    Text(
+                        if (isUnlimited) {
+                            stringResource(R.string.unlimited)
+                        } else {
+                            backupLimit.value.toString()
+                        }
+                    )
 
                     Switch(
                         checked = isUnlimited,
@@ -328,10 +593,19 @@ private fun SettingsScreen(
                             setInputText(newValue.toString())
                             viewModel.saveBackupLimit(newValue)
                         },
-                        modifier = Modifier.padding(start = 8.dp)
+                        // This row uses mergeSemantics = false, unlike CheckboxRow, because
+                        // it also shows a dynamic value (the count or "Unlimited") that needs
+                        // to stay independently readable. Without its own name here TalkBack
+                        // reached an unlabelled switch with no idea what it controlled.
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .semantics {
+                                contentDescription = unlimitedBackupsLabel
+                            }
                     )
                 }
-            }
+            },
+            mergeSemantics = false
         )
 
         AnimatedVisibility(visible = !isUnlimited) {
@@ -403,97 +677,124 @@ private fun SettingsScreen(
             }
         }
 
-        SettingsRow(
-            title = stringResource(id = R.string.backup_data_settings),
-            subtitle = null,
-            iconView = {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_dataset_24),
-                    contentDescription = stringResource(id = R.string.backup_data_settings),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
-                )
-            },
-            rightView = {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                )
-            },
-            onClick = onBackupDataSettings
+        Text(
+            text = stringResource(R.string.about),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
+        Spacer(modifier = Modifier.height(2.dp))
 
-        SettingsRow(
-            title = stringResource(id = R.string.faq),
-            subtitle = null,
-            iconView = {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_faq_24),
-                    contentDescription = stringResource(id = R.string.faq),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
-                )
-            },
-            rightView = {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                )
-            },
-            onClick = onFAQ
-        )
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        ) {
+            Column(modifier = Modifier.padding(vertical = 6.dp)) {
 
-        SettingsRow(
-            title = stringResource(id = R.string.terms),
-            subtitle = null,
-            iconView = {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_article_24),
-                    contentDescription = stringResource(id = R.string.terms),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+
+                SettingsRow(
+                    title = stringResource(id = R.string.faq),
+                    subtitle = null,
+                    iconView = {
+                        Image(
+                            imageVector = Icons.Filled.Info,
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = onFAQ
                 )
-            },
-            rightView = {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
+
+                SettingsRow(
+                    title = stringResource(id = R.string.terms),
+                    subtitle = null,
+                    iconView = {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_article_24),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        openDoc(R.string.terms, "terms")
+                    }
                 )
-            },
-            onClick = {
-                openDoc(R.string.terms, "terms")
+
+                SettingsRow(
+                    title = stringResource(id = R.string.license),
+                    subtitle = null,
+                    iconView = {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_article_24),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        openDoc(R.string.license, "license")
+                    }
+                )
+
+                SettingsRow(
+                    title = stringResource(id = R.string.privacy),
+                    subtitle = null,
+                    iconView = {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_article_24),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        openDoc(R.string.privacy, "privacy")
+                    }
+                )
+
+                // Its own row. Rendered in the Privacy Policy row's rightView it
+                // read as the version *of the policy*.
+                SettingsRow(
+                    title = stringResource(id = R.string.version_title),
+                    subtitle = null,
+                    iconView = {
+                        Image(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
+                        )
+                    },
+                    rightView = {
+                        Text(version)
+                    }
+                )
+
             }
-        )
+        }
 
-        SettingsRow(
-            title = stringResource(id = R.string.privacy),
-            subtitle = null,
-            iconView = {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_article_24),
-                    contentDescription = stringResource(id = R.string.privacy),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
-                )
-            },
-            rightView = {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                )
-            },
-            onClick = {
-                openDoc(R.string.privacy, "privacy")
-            }
-        )
-
-        SettingsRow(
-            title = stringResource(id = R.string.version_title),
-            subtitle = null,
-            iconView = {
-                Image(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = stringResource(id = R.string.version_title),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface)
-                )
-            },
-            rightView = { Text(text = version) }
-        )
+        Spacer(modifier = Modifier.height(18.dp))
     }
 }

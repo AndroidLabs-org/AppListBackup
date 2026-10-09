@@ -4,6 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terms of Use</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #ffffff;
+        color: #1a1a1a;
+        font-family: -apple-system, Roboto, sans-serif;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background: #121212; color: #e6e6e6; }
+        a { color: #9db9ff; }
+      }
+      /* prefers-color-scheme alone wasn't reliably reflecting the app's theme in
+         this WebView — the in-app report viewer works because it sets this
+         attribute explicitly via JS; DocsViewerActivity now does the same. */
+      :root[data-theme="dark"] body { background: #121212; color: #e6e6e6; }
+      :root[data-theme="dark"] a { color: #9db9ff; }
+    </style>
 </head>
 <body>
 <h2>1. Introduction</h2>
@@ -13,7 +34,7 @@
 <p>You agree to use App List Backup only for lawful purposes and in a way that does not infringe the rights of restrict or inhibit the use and enjoyment of the app by anyone else.</p>
 
 <h2>3. Intellectual Property</h2>
-<p>All content, features, and functionality of the app including but not limited to text, graphics, logos, and software are the exclusive property of androidlabs.org and are protected by copyright and other laws.</p>
+<p>The source code of App List Backup is free software released under the GNU General Public License, version 3 (see the License document in the app and the LICENSE file in the source repository). You may use, study, modify and redistribute it under the terms of that license. The name "App List Backup", the logos and the graphics remain the property of androidlabs.org and are protected by copyright and other laws.</p>
 
 <h2>4. User Data</h2>
 <p>App List Backup may collect data as outlined in our Privacy Policy. By using the app you consent to the collection and use of your data in accordance with this policy.</p>

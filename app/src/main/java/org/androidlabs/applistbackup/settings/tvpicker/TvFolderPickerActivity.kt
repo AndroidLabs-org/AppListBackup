@@ -38,9 +38,11 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.androidlabs.applistbackup.R
 import org.androidlabs.applistbackup.utils.Utils.clearPrefixSlash
 import java.io.File
 
@@ -139,18 +141,30 @@ private fun TvFolderPicker(
                         true
                     }
 
-                    keyEvent.key == Key.Enter &&
+                    // A television remote's OK button sends DPAD_CENTER, not ENTER. Only
+                    // Key.Enter was accepted here, so on an actual remote nothing in this
+                    // screen could be chosen at all — and this screen is the only way to pick
+                    // a backup folder on TV, there being no Storage Access Framework picker.
+                    // Verified on the TV emulator: DPAD_CENTER did nothing where ENTER
+                    // navigated. NumPadEnter is accepted too, for keyboard-attached devices.
+                    (keyEvent.key == Key.Enter ||
+                            keyEvent.key == Key.DirectionCenter ||
+                            keyEvent.key == Key.NumPadEnter) &&
                             keyEvent.type == KeyEventType.KeyDown -> {
-                        when (selectedIndex) {
-                            0 -> onFolderSelected(currentPath)
-                            1 -> showNewFolderDialog = true
-                            2 -> if (!isExternalStorage) {
+                        // Index 2 is "Go to Parent Folder" only when there is a parent to go
+                        // to. At the storage root there is not, so startItemsCount is 2 and
+                        // index 2 is the *first folder in the list* — which the old `2 ->`
+                        // branch swallowed, leaving it impossible to open. Alphabetically
+                        // that is usually "Alarms"; on the emulator it is exactly that.
+                        when {
+                            selectedIndex == 0 -> onFolderSelected(currentPath)
+                            selectedIndex == 1 -> showNewFolderDialog = true
+                            selectedIndex == 2 && !isExternalStorage ->
                                 currentPath = currentPath.parentFile ?: currentPath
-                            }
 
                             else -> {
                                 val folderIndex = selectedIndex - startItemsCount
-                                if (folderIndex < folders.size) {
+                                if (folderIndex in folders.indices) {
                                     currentPath = folders[folderIndex]
                                 }
                             }
@@ -163,14 +177,14 @@ private fun TvFolderPicker(
             }
     ) {
         Text(
-            text = "Select Folder",
+            text = stringResource(R.string.tv_select_folder),
             style = MaterialTheme.typography.headlineLarge,
             color = Color.White,
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
         Text(
-            text = "📍 Current: $formattedPath",
+            text = stringResource(R.string.tv_current_folder, formattedPath),
             style = MaterialTheme.typography.headlineSmall,
             color = Color.White,
             modifier = Modifier.padding(bottom = 16.dp)
@@ -181,7 +195,7 @@ private fun TvFolderPicker(
         ) {
             item {
                 FolderPickerItem(
-                    text = "✓ Select This Folder",
+                    text = stringResource(R.string.tv_select_this_folder),
                     isFocused = selectedIndex == 0,
                     onClick = { onFolderSelected(currentPath) },
                 )
@@ -189,7 +203,7 @@ private fun TvFolderPicker(
 
             item {
                 FolderPickerItem(
-                    text = "➕ Create New Folder",
+                    text = stringResource(R.string.tv_create_new_folder),
                     isFocused = selectedIndex == 1,
                     onClick = { showNewFolderDialog = true }
                 )
@@ -199,7 +213,7 @@ private fun TvFolderPicker(
                 currentPath.parentFile?.let { parent ->
                     item {
                         FolderPickerItem(
-                            text = "⬆️ Go to Parent Folder",
+                            text = stringResource(R.string.tv_go_to_parent_folder),
                             isFocused = selectedIndex == 2,
                             onClick = { currentPath = parent }
                         )
@@ -211,7 +225,7 @@ private fun TvFolderPicker(
                 val folder = folders[index]
 
                 FolderPickerItem(
-                    text = "📁 ${folder.name}",
+                    text = stringResource(R.string.tv_folder_item, folder.name),
                     isFocused = index == selectedIndex - startItemsCount,
                     onClick = { currentPath = folder }
                 )
@@ -225,7 +239,7 @@ private fun TvFolderPicker(
             onDismissRequest = { showNewFolderDialog = false },
             title = {
                 Text(
-                    "Create New Folder",
+                    stringResource(R.string.tv_create_new_folder_title),
                     color = Color.White
                 )
             },
@@ -233,7 +247,7 @@ private fun TvFolderPicker(
                 OutlinedTextField(
                     value = folderName,
                     onValueChange = { folderName = it },
-                    label = { Text("Folder Name", color = Color.White) },
+                    label = { Text(stringResource(R.string.tv_folder_name), color = Color.White) },
                     textStyle = TextStyle(
                         color = Color.White,
                         fontSize = 16.sp
@@ -257,12 +271,12 @@ private fun TvFolderPicker(
                         showNewFolderDialog = false
                     }
                 ) {
-                    Text("Create", color = Color.White)
+                    Text(stringResource(R.string.tv_create), color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showNewFolderDialog = false }) {
-                    Text("Cancel", color = Color.White)
+                    Text(stringResource(R.string.tv_cancel), color = Color.White)
                 }
             },
             containerColor = Color.DarkGray

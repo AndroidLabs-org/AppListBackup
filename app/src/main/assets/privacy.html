@@ -4,6 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #ffffff;
+        color: #1a1a1a;
+        font-family: -apple-system, Roboto, sans-serif;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background: #121212; color: #e6e6e6; }
+        a { color: #9db9ff; }
+      }
+      /* prefers-color-scheme alone wasn't reliably reflecting the app's theme in
+         this WebView — the in-app report viewer works because it sets this
+         attribute explicitly via JS; DocsViewerActivity now does the same. */
+      :root[data-theme="dark"] body { background: #121212; color: #e6e6e6; }
+      :root[data-theme="dark"] a { color: #9db9ff; }
+    </style>
 </head>
 <body>
 <p>Effective Date: June 2024</p>

@@ -2,13 +2,10 @@ package org.androidlabs.applistbackup.tasker
 
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -25,7 +22,7 @@ import com.joaomgcd.taskerpluginlibrary.input.TaskerInputField
 import com.joaomgcd.taskerpluginlibrary.input.TaskerInputRoot
 import com.joaomgcd.taskerpluginlibrary.runner.TaskerPluginResult
 import com.joaomgcd.taskerpluginlibrary.runner.TaskerPluginResultSucess
-import org.androidlabs.applistbackup.BackupService
+import org.androidlabs.applistbackup.BackupWorker
 import org.androidlabs.applistbackup.R
 import org.androidlabs.applistbackup.data.BackupFormat
 
@@ -53,7 +50,7 @@ enum class TaskerBackupFormat(val value: String) {
                 emptyList()
             } else {
                 value.split(",")
-                    .filter { it.isNotEmpty() && BackupFormat.fromStringOptional(it) != null }
+                    .filter { it.isNotEmpty() && BackupFormat.fromString(it) != null }
             }
         }
 
@@ -283,24 +280,32 @@ class TaskerPlugin : Activity(), TaskerPluginConfig<BackupFormatInput> {
     }
 }
 
+/**
+ * Reached when the host starts or binds the library's IntentServiceAction directly
+ * instead of broadcasting. The broadcast path no longer comes through here — see
+ * [TaskerFireReceiver], which the manifest puts in front of the library's own
+ * receiver.
+ */
 class PluginRunner : TaskerPluginRunnerActionNoOutput<BackupFormatInput>() {
     override fun run(
         context: Context,
         input: TaskerInput<BackupFormatInput>
     ): TaskerPluginResult<Unit> {
-        Handler(Looper.getMainLooper()).post {
-            Log.d("BackupTaskerPluginRunner", "run $input")
-            val intent = Intent(context, BackupService::class.java).apply {
-                putExtra("source", "tasker")
-                input.regular.format.let {
-                    val formats = TaskerBackupFormat.getSelectedFormats(it)
-                    if (formats.isNotEmpty()) {
-                        putExtra("format", it)
-                    }
-                }
-            }
-            context.startForegroundService(intent)
-        }
+        Log.d("BackupTaskerPluginRunner", "run $input")
+
+        // This runs inside a service that the system may already consider
+        // background, and startForegroundService() from there is refused the
+        // same way it is from a receiver. WorkManager is not.
+        val format = input.regular.format
+            .takeIf { TaskerBackupFormat.getSelectedFormats(it).isNotEmpty() }
+
+        BackupWorker.enqueue(
+            context = context,
+            source = TaskerFireReceiver.SOURCE,
+            format = format,
+            temporary = false,
+        )
+
         return TaskerPluginResultSucess()
     }
 }
